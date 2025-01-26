@@ -1,0 +1,40 @@
+import 'package:flutter/material.dart';
+import 'package:frontend/providers/ponto_parada_provider.dart';
+import 'screens/login_tela.dart';
+import 'screens/tela_inicio.dart';
+import 'services/login_service.dart';
+import 'package:provider/provider.dart';
+
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => PointProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false, //desativar o banner de debug
+      title: 'App Suter',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: FutureBuilder<String?>(
+        future: LoginService.getToken(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasData && snapshot.data != null) {
+            return const TelaInicio();
+          } else {
+            return const LoginScreen();
+          }
+        },
+      ),
+    );
+  }
+}
