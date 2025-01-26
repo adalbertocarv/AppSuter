@@ -122,60 +122,59 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: Stack(
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                center: _userLocation ?? const LatLng(-15.7942, -47.8822),
+                zoom: 17.0,
+                interactiveFlags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                onMapEvent: (event) {
+                  setState(() {
+                    // Atualiza o ponto selecionado baseado na posição central
+                    _selectedPoint = _mapController.center;
+                  });
+                },
+              ),
               children: [
-                if (_isLoading)
-                  const Center(child: CircularProgressIndicator()) // Mostra um indicador de carregamento
-                else
-                  FlutterMap(
-                    mapController: _mapController, // Passa o controlador do mapa
-                    options: MapOptions(
-                      center: _userLocation ?? const LatLng(-15.7942, -47.8822), // Centraliza no usuário ou em Brasília (fallback)
-                      zoom: 17.0,
-                      interactiveFlags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                      onTap: (tapPosition, point) {
-                        setState(() {
-                          _selectedPoint = point; // Atualiza o ponto selecionado
-                        });
-                      },
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate:
-                        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        subdomains: const ['a', 'b', 'c'],
+                TileLayer(
+                  urlTemplate:
+                  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c'],
+                ),
+                if (_userLocation != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _userLocation!,
+                        child: const Icon(
+                          Icons.my_location,
+                          color: Colors.blue,
+                          size: 30,
+                        ),
                       ),
-                      if (_userLocation != null)
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: _userLocation!,
-                              child: const Icon(
-                                Icons.location_pin,
-                                color: Colors.blue,
-                                size: 40,
-                              ),
-                            ),
-                          ],
-                        ),
-                      if (_selectedPoint != null)
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: _selectedPoint!,
-                              child: const Icon(
-                                Icons.location_on,
-                                color: Colors.red,
-                                size: 30,
-                              ),
-                            ),
-                          ],
-                        ),
                     ],
                   ),
+              ],
+            ),
+          // Alfinete centralizado com offset
+          IgnorePointer(
+            child: Center(
+              child: Transform.translate(
+                offset: const Offset(0, -20), // Move o ícone para cima
+                child: const Icon(
+                  Icons.location_pin,
+                  color: Colors.red,
+                  size: 40,
+                ),
+              ),
+            ),
+          ),
+          // Botão para confirmar o ponto
                 Positioned(
                   bottom: 16,
                   left: 16,
@@ -204,13 +203,10 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                   child: FloatingActionButton(
                     onPressed: _centerMapOnUserLocation,
                     child: const Icon(Icons.my_location),
-                    mini: true, // Torna o botão menor
+                    tooltip: 'Minha localização',
                     backgroundColor: Colors.blue,
                   ),
                 ),
-              ],
-            ),
-          ),
         ],
       ),
     );
