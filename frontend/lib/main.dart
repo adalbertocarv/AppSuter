@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/providers/ponto_parada_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_tela.dart';
 import 'screens/tela_inicio.dart';
 import 'services/login_service.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Limpar o token ao iniciar o app
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('token'); // Remove o token armazenado
   runApp(
     MultiProvider(
       providers: [
@@ -22,7 +28,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false, //desativar o banner de debug
       title: 'App Suter',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        colorScheme: ColorScheme.light(
+          primary: Colors.blue, // Cor primária
+          secondary: Colors.blueAccent, // Cor de destaque
+        ),
+      ),
       home: FutureBuilder<String?>(
         future: LoginService.getToken(),
         builder: (context, snapshot) {

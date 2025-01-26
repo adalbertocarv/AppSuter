@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/registro_tela.dart';
+import 'package:frontend/screens/tela_inicio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
@@ -8,23 +8,28 @@ import '../providers/ponto_parada_provider.dart';
 
 class FormularioParadaTela extends StatefulWidget {
   final LatLng latLng;
+  final Map<String, dynamic>? initialData; // Propriedade para edição
 
-  FormularioParadaTela({required this.latLng});
+  FormularioParadaTela({required this.latLng, this.initialData});
 
   @override
   _FormularioParadaTelaState createState() => _FormularioParadaTelaState();
 }
 
 class _FormularioParadaTelaState extends State<FormularioParadaTela> {
-  final _addressController = TextEditingController();
-  final _directionController = TextEditingController();
-  final _typeController = TextEditingController();
-  bool _isActive = false;
-  File? _imageFile; // File for storing the selected or captured image
+  // Inicializa os controladores com base nos dados existentes ou valores padrão
+  late final TextEditingController _addressController =
+  TextEditingController(text: widget.initialData?['endereco'] ?? '');
+  late final TextEditingController _directionController =
+  TextEditingController(text: widget.initialData?['sentido'] ?? '');
+  late final TextEditingController _typeController =
+  TextEditingController(text: widget.initialData?['tipo'] ?? '');
+  late bool _isActive = widget.initialData?['ativo'] ?? false;
+  File? _imageFile;
 
   final ImagePicker _picker = ImagePicker();
 
-  // Function to pick an image from the gallery
+  // Função para selecionar uma imagem da galeria
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -34,7 +39,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     }
   }
 
-  // Function to capture an image with the camera
+  // Função para capturar uma imagem com a câmera
   Future<void> _captureImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
@@ -44,17 +49,32 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     }
   }
 
+  // Salvar a parada usando o provider
   void _saveParada(BuildContext context) {
     final pointProvider = Provider.of<PointProvider>(context, listen: false);
 
-    // Adiciona a parada no provider
+    // Validar os campos obrigatórios
+    if (_addressController.text.isEmpty ||
+        _directionController.text.isEmpty ||
+        _typeController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, preencha todos os campos obrigatórios!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Adicionar a parada no provider
     pointProvider.addPoint(
-      address: _addressController.text,
-      direction: _directionController.text,
-      type: _typeController.text,
-      isActive: _isActive,
-      latLng: widget.latLng,
-      imagePath: _imageFile?.path,
+      endereco: _addressController.text,
+      sentido: _directionController.text,
+      tipo: _typeController.text,
+      longitude: widget.latLng.longitude,
+      latitude: widget.latLng.latitude,
+      ativo: _isActive,
+      imagemPath: _imageFile?.path,
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -64,7 +84,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       ),
     );
 
-    // Opcionalmente, resetar o formulário
+    // Resetar o formulário
     _addressController.clear();
     _directionController.clear();
     _typeController.clear();
@@ -126,35 +146,74 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                 style: TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _pickImage,
-                    icon: const Icon(Icons.photo),
-                    label: const Text('Galeria'),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _captureImage,
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Câmera'),
-                  ),
-                ],
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center, // Centraliza os botões na linha
+                  children: [
+                    IntrinsicWidth(
+                      child: ElevatedButton.icon(
+                        onPressed: _pickImage,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                        icon: const Icon(Icons.photo),
+                        label: const Text('Galeria'),
+                      ),
+                    ),
+                    const SizedBox(width: 10), // Espaço entre os botões
+                    IntrinsicWidth(
+                      child: ElevatedButton.icon(
+                        onPressed: _captureImage,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text('Câmera'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => _saveParada(context),
-                child: const Text('Salvar Parada'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (ctx) => RegistroTela()),
-                  );
-                },
-                child: const Text('Ver Paradas Temporárias'),
-              ),
+              Center(
+                child: IntrinsicWidth(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Validar os campos obrigatórios
+                      if (_addressController.text.isEmpty ||
+                          _directionController.text.isEmpty ||
+                          _typeController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Por favor, preencha todos os campos obrigatórios!'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return; // Não navega para a próxima tela
+                      }
 
+                      // Salva a parada e navega para RegistroTela
+                      _saveParada(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (ctx) => TelaInicio()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                    child: const Text('Salvar Parada'),
+                  ),
+                ),
+              ),
             ],
           ),
         ),

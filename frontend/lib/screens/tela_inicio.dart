@@ -1,5 +1,3 @@
-// ignore_for_file: prefer_const_constructors
-
 import 'package:flutter/material.dart';
 import 'paradas_tela.dart';
 import 'registrar_paradas_tela.dart';
@@ -20,7 +18,7 @@ class _HomeScreenState extends State<TelaInicio> {
   // Lista de telas associadas ao Bottom Navigation
   final List<Widget> _pages = [
     RegistrarParadaTela(), // Tela de paradas com Flutter Map
-    RegistroTela(), // Tela de registro (vazia por enquanto)
+    const RegistroTela(), // Tela de registro (vazia por enquanto)
   ];
 
   void _onTabTapped(int index) {
@@ -33,7 +31,7 @@ class _HomeScreenState extends State<TelaInicio> {
     await LoginService.logout();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
 
@@ -41,38 +39,39 @@ class _HomeScreenState extends State<TelaInicio> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Paradas e Registro'),
+        title: const Text('Paradas e Registro'),
       ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
+            const DrawerHeader(
               decoration: BoxDecoration(color: Colors.blue),
               child: Text(
                 'Menu',
                 style: TextStyle(color: Colors.white, fontSize: 24),
               ),
             ),
-      ListTile(
-        leading: Icon(Icons.map),
-        title: Text('Paradas'),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => ParadasTela()),
-          );
-        },
+            ListTile(
+              leading: const Icon(Icons.pin_drop),
+              title: const Text('Paradas cadastradas'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ParadasTela()),
+                );
+              },
             ),
             ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Sair'),
+              leading: const Icon(Icons.logout),
+              title: const Text('Sair'),
               onTap: () => _logout(context),
             ),
           ],
         ),
       ),
-      body: _pages[_currentIndex], // Exibe a tela selecionada no Bottom Navigation
+      body: _pages[
+          _currentIndex], // Exibe a tela selecionada no Bottom Navigation
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,

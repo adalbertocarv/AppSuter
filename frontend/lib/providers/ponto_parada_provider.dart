@@ -1,73 +1,147 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
-
-class PontoParadaProvider {
-  final String address;
-  final String direction;
-  final String type;
-  final bool isActive;
-  final LatLng latLng;
-  final String? imagePath;
-
-  PontoParadaProvider({
-    required this.address,
-    required this.direction,
-    required this.type,
-    required this.isActive,
-    required this.latLng,
-    this.imagePath,
-  });
-}
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class PointProvider with ChangeNotifier {
-  final List<PontoParadaProvider> _paradas = [];
+  List<Map<String, dynamic>> _points = [];
 
-  List<PontoParadaProvider> get points => [..._paradas];
+  List<Map<String, dynamic>> get points => [..._points];
 
-  // Adiciona uma nova parada temporariamente
-  void addPoint({
-    required String address,
-    required String direction,
-    required String type,
-    required bool isActive,
-    required LatLng latLng,
-    String? imagePath,
-  }) {
-    _paradas.add(
-      PontoParadaProvider(
-        address: address,
-        direction: direction,
-        type: type,
-        isActive: isActive,
-        latLng: latLng,
-        imagePath: imagePath,
-      ),
-    );
-    notifyListeners(); // Notifica ouvintes da atualização
+  // Carregar dados salvos localmente
+  Future<void> loadPoints() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedPoints = prefs.getString('points');
+    if (storedPoints != null) {
+      _points = List<Map<String, dynamic>>.from(jsonDecode(storedPoints));
+      notifyListeners();
+    }
   }
 
-  // Remove uma parada
-  void removePoint(int index) {
-    _paradas.removeAt(index);
+  // Salvar pontos localmente
+  Future<void> _savePoints() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('points', jsonEncode(_points));
+  }
+
+  // Adicionar um novo ponto localmente e fazer POST no backend
+  Future<void> addPoint({
+    required String endereco,
+    required String sentido,
+    required String tipo,
+    required double longitude,
+    required double latitude,
+    required bool ativo,
+    String? imagemPath,
+  }) async {
+    final newPoint = {
+      "endereco": endereco,
+      "sentido": sentido,
+      "tipo": tipo,
+      "longitude": longitude,
+      "latitude": latitude,
+      "ativo": ativo,
+      "imagemPath": imagemPath,
+    };
+
+    // Adicionar localmente
+    _points.add(newPoint);
     notifyListeners();
+    await _savePoints();
+
+    // Fazer POST no backend
+    try {
+      final url = Uri.parse("http://100.83.163.53:3000/pontos");
+      final request = http.MultipartRequest('POST', url)
+        ..fields['endereco'] = endereco
+        ..fields['sentido'] = sentido
+        ..fields['tipo'] = tipo
+        ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude})
+        ..fields['ativo'] = ativo.toString();
+
+      if (imagemPath != null) {
+        request.files.add(await http.MultipartFile.fromPath('imagem', imagemPath));
+      }
+
+      final response = await request.send();
+      if (response.statusCode == 201) {
+        print('Ponto criado com sucesso!');
+      } else {
+        print('Erro ao criar o ponto: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Erro na criação do ponto: $error');
+    }
   }
 
-  // Envia os pontos salvos temporariamente para o backend
-  Future<void> sendPointsToBackend() async {
-    for (var point in _paradas) {
-      try {
-        // Simulação de envio para o backend (substitua com lógica real)
-        // Utilize uma biblioteca como `http` para enviar um POST
-        print('Enviando parada: ${point.address}');
-        // TODO: Implementar lógica de envio para o backend aqui
-      } catch (e) {
-        print('Erro ao enviar ponto: ${point.address}');
-      }
+  // Atualizar um ponto existente
+  Future<void> updatePoint(
+      int index, {
+        required String endereco,
+        required String sentido,
+        required String tipo,
+        required double longitude,
+        required double latitude,
+        required bool ativo,
+        String? imagemPath,
+      }) async {
+    if (index < 0 || index >= _points.length) {
+      print('Índice inválido');
+      return;
     }
 
-    // Limpa as paradas após envio
-    _paradas.clear();
+    final updatedPoint = {
+      "endereco": endereco,
+      "sentido": sentido,
+      "tipo": tipo,
+      "longitude": longitude,
+      "latitude": latitude,
+      "ativo": ativo,
+      "imagemPath": imagemPath,
+    };
+
+    // Atualizar localmente
+    _points[index] = updatedPoint;
     notifyListeners();
+    await _savePoints();
+
+    // Fazer PUT no backend
+    try {
+      final url = Uri.parse("http://100.83.163.53:3000/pontos/${_points[index]['id']}");
+      final request = http.MultipartRequest('PUT', url)
+        ..fields['endereco'] = endereco
+        ..fields['sentido'] = sentido
+        ..fields['tipo'] = tipo
+        ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude})
+        ..fields['ativo'] = ativo.toString();
+
+      if (imagemPath != null) {
+        request.files.add(await http.MultipartFile.fromPath('imagem', imagemPath));
+      }
+
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        print('Ponto atualizado com sucesso!');
+      } else {
+        print('Erro ao atualizar o ponto: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Erro na atualização do ponto: $error');
+    }
+  }
+
+  // Remover um ponto por índice
+  void removePoint(int index) {
+    _points.removeAt(index);
+    notifyListeners();
+    _savePoints(); // Atualiza os dados persistidos
+  }
+
+  // Limpar todos os pontos (opcional, usado no logout ou ao enviar para o banco)
+  Future<void> clearPoints() async {
+    _points = [];
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    prefs.remove('points');
   }
 }
