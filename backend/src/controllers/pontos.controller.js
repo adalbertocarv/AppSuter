@@ -12,13 +12,13 @@ const upload = multer({
     if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
       cb(null, true);
     } else {
-      cb(new Error('Only .jpg, .jpeg, and .png files are allowed'));
+      cb(new Error('Apenas arquivos .jpg, .jpeg, and .png são permitidos'));
     }
   },
 });
 
-// Obter todos os pontos
-exports.getAllPontos = async (req, res) => {
+// Obter todos as paradas
+exports.consultarTodasParadas = async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -35,15 +35,28 @@ exports.getAllPontos = async (req, res) => {
       FROM pontos;
     `;
     const result = await db.query(query);
-    res.status(200).json(result.rows); // Retorna todos os pontos
+
+    // Adicionar a URL da imagem a cada ponto
+    const paradas = result.rows.map((parada) => {
+      return {
+        ...parada,
+        imagemUrl: parada.imagem
+          ? `${req.protocol}://${req.get('host')}/pontos/${parada.id}/imagem`
+          : null, // Adiciona null caso a imagem não exista
+        imagem: undefined, // Remove o campo imagem (não incluímos no retorno)
+      };
+    });
+
+    res.status(200).json(paradas); // Retorna todas as paradas com a URL da imagem
   } catch (error) {
-    console.error('Error fetching points:', error.message);
+    console.error('Erro ao buscar as paradas:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
 
-// Obter um ponto específico por ID
-exports.getPontoById = async (req, res) => {
+
+// Obter uma parada específica por ID
+exports.consultarParadasById = async (req, res) => {
   try {
     const { id } = req.params;
     const query = `
@@ -52,7 +65,7 @@ exports.getPontoById = async (req, res) => {
         endereco,
         sentido,
         tipo,
-        imagem, -- Caminho ou nome do arquivo de imagem armazenado
+        imagem,
         ativo,
         ST_X(geom::geometry) AS longitude,
         ST_Y(geom::geometry) AS latitude,
@@ -64,7 +77,7 @@ exports.getPontoById = async (req, res) => {
     const result = await db.query(query, [id]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Ponto não encontrado' });
+      return res.status(404).json({ message: 'Parada não encontrada' });
     }
 
     const ponto = result.rows[0];
@@ -79,12 +92,12 @@ exports.getPontoById = async (req, res) => {
 
     res.status(200).json(ponto);
   } catch (error) {
-    console.error('Error fetching point by ID:', error.message);
+    console.error('Erro ao buscar parada por ID:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
 // Carregar a imagem
-exports.getPontoImagem = async (req, res) => {
+exports.consultarParadaImagem = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -108,7 +121,7 @@ exports.getPontoImagem = async (req, res) => {
 };
 
 // Criar um novo ponto
-exports.createPonto = [
+exports.criarParada = [
   upload.single('imagem'), // Middleware para lidar com o upload da imagem
   async (req, res) => {
     try {
@@ -138,7 +151,7 @@ exports.createPonto = [
 ];
 
 // Atualizar um ponto
-exports.updatePonto = async (req, res) => {
+exports.atualizarParada = async (req, res) => {
   try {
     const { id } = req.params;
     const { endereco, sentido, tipo, geom, ativo } = req.body;
@@ -179,7 +192,7 @@ exports.updatePonto = async (req, res) => {
 };
 
 // Deletar um ponto
-exports.deletePonto = async (req, res) => {
+exports.deletarParada = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await db.query('DELETE FROM pontos WHERE id = $1 RETURNING *', [id]);
