@@ -13,23 +13,42 @@ class ParadasTela extends StatefulWidget {
 }
 
 class _ParadasTelaState extends State<ParadasTela> {
-  String? _camadaSelecionada; // Layer selecionada (Bacias, RAS, RA)
-  String? _featureSelecionada; // feature selecionada
-  List<String> _featuresList = []; // Lista das features para o dropdown
-  List<List<LatLng>> _currentPolygons = []; // Polygons colocados no mapa
+  String? _camadaSelecionada;
+  String? _featureSelecionada;
+  List<String> _featuresList = [];
+  List<List<LatLng>> _currentPolygons = [];
 
   final BaciaService _baciaService = BaciaService();
   final RAService _rasService = RAService();
 
-  List<Marker> _markers = []; // Lista de markers para o mapa
-  bool _isLoading = true; // Indica se os dados estão sendo carregados
+  List<Marker> _markers = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _camadaSelecionada = 'Bacias DF'; // Default layer
-    _loadBacias(); // Load Bacias on initialization
-    _loadParadas(); // Carrega as paradas ao iniciar a tela
+    _camadaSelecionada = 'Bacias DF';
+    _loadBacias();
+  }
+
+  // Algoritmo Ray Casting otimizado para verificar se um ponto está dentro do polígono
+  //Foi a implementação que funcionou, mas vai ser trocado por consulta direto no banco com within
+  bool _isPointInPolygon(LatLng point, List<LatLng> polygon) {
+    if (polygon.isEmpty) return false;
+
+    bool inside = false;
+    int i, j = polygon.length - 1;
+
+    for (i = 0; i < polygon.length; j = i++) {
+      if (((polygon[i].latitude > point.latitude) != (polygon[j].latitude > point.latitude)) &&
+          (point.longitude < (polygon[j].longitude - polygon[i].longitude) *
+              (point.latitude - polygon[i].latitude) / (polygon[j].latitude - polygon[i].latitude) +
+              polygon[i].longitude)) {
+        inside = !inside;
+      }
+    }
+
+    return inside;
   }
 
   Future<void> _loadBacias() async {
@@ -62,8 +81,7 @@ class _ParadasTelaState extends State<ParadasTela> {
     }
   }
 
-  void _filterPolygons(
-      List<dynamic> features, String? selectedFeature, String propertyKey) {
+  void _filterPolygons(List<dynamic> features, String? selectedFeature, String propertyKey) {
     if (selectedFeature == null) return;
 
     final selectedFeatures = features.where((feature) {
@@ -92,29 +110,46 @@ class _ParadasTelaState extends State<ParadasTela> {
 
     setState(() {
       _currentPolygons = polygons;
+      _loadParadas(); // Carregar paradas após atualizar polígonos
     });
   }
-  // Método para carregar as paradas do backend
+
   Future<void> _loadParadas() async {
+    if (_currentPolygons.isEmpty) return;
+
     try {
       final paradas = await PontoParadaService.todasAsParadas();
-      setState(() {
-        _markers = paradas.map((parada) {
-          return Marker(
-            point: LatLng(parada['latitude'], parada['longitude']),
-            width: 32, // Largura do marker
-            height: 32, // Altura do marker
-            child: GestureDetector(
-              onTap: () {
-                _mostrarDetalhesParada(parada);
-              },
-              child: Image.asset(
-                'assets/images/paradaComFundo.png',
-                fit: BoxFit.cover,
+      List<Marker> filteredMarkers = [];
+
+      for (var parada in paradas) {
+        final point = LatLng(
+            double.parse(parada['latitude'].toString()),
+            double.parse(parada['longitude'].toString())
+        );
+
+        // Verifica se o ponto está em qualquer um dos polígonos
+        bool isInside = _currentPolygons.any((polygon) => _isPointInPolygon(point, polygon));
+
+        if (isInside) {
+          filteredMarkers.add(
+            Marker(
+              point: point,
+              width: 32,
+              height: 32,
+              child: GestureDetector(
+                onTap: () => _mostrarDetalhesParada(parada),
+                child: Image.asset(
+                  'assets/images/paradaComFundo.png',
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           );
-        }).toList();
+        }
+      }
+
+      setState(() {
+        _markers = filteredMarkers;
         _isLoading = false;
       });
     } catch (e) {
@@ -131,7 +166,6 @@ class _ParadasTelaState extends State<ParadasTela> {
     }
   }
 
-  // Exibe um diálogo com os detalhes da parada
   void _mostrarDetalhesParada(Map<String, dynamic> parada) {
     showDialog(
       context: context,
@@ -150,7 +184,7 @@ class _ParadasTelaState extends State<ParadasTela> {
               if (parada['imagemUrl'] != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child: Center( // Centraliza a imagem horizontalmente
+                  child: Center(
                     child: Image.network(
                       parada['imagemUrl'],
                       height: 100,
@@ -180,88 +214,88 @@ class _ParadasTelaState extends State<ParadasTela> {
       appBar: AppBar(
         title: const Text('Paradas Registradas'),
       ),
-        body: Column(
-          children: [
-          // First Dropdown: Layer Selection
-          DropdownButton<String>(
-          value: _camadaSelecionada,
-          hint: const Text('Selecione uma camada'),
-          isExpanded: true,
-          items: const [
-            DropdownMenuItem(value: 'Bacias DF', child: Text('Bacias DF')),
-            DropdownMenuItem(value: 'RAS DF', child: Text('RAS DF')),
-          ],
-          onChanged: (String? newLayer) {
-            setState(() {
-              _camadaSelecionada = newLayer;
-              _featureSelecionada = null; // Reset the second dropdown selection
-              _featuresList.clear(); // Clear the features list
-            });
-
-            // Load features based on selected layer
-            if (newLayer == 'Bacias DF') {
-              _loadBacias();
-            } else if (newLayer == 'RAS DF') {
-              _loadRas();
-            }
-          },
-        ),
-
-        // Second Dropdown: Feature Selection
-        if (_featuresList.isNotEmpty)
-    DropdownButton<String>(
-      value: _featureSelecionada,
-      hint: const Text('Selecione um item'),
-      isExpanded: true,
-      items: _featuresList.map((feature) {
-        return DropdownMenuItem<String>(
-          value: feature,
-          child: Text(feature),
-        );
-      }).toList(),
-      onChanged: (String? newFeature) {
-        setState(() {
-          _featureSelecionada = newFeature;
-        });
-
-        // Filtra poligonos baseado na feature selecionada
-        if (_camadaSelecionada == 'Bacias DF') {
-          _filterPolygons(_baciaService.features, newFeature, 'dsc_bacia');
-        } else if (_camadaSelecionada == 'RAS DF') {
-          _filterPolygons(_rasService.features, newFeature, 'dsc_nome');
-        }
-      },
-    ),
-    Expanded(
-    child: FlutterMap(
-        options: const MapOptions(
-          center: LatLng(-15.7942, -47.8822),
-          zoom: 14.0,
-          interactiveFlags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-        ),
+      body: Column(
         children: [
-          TileLayer(
-            urlTemplate:
-            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            subdomains: const ['a', 'b', 'c'],
+          DropdownButton<String>(
+            value: _camadaSelecionada,
+            hint: const Text('Selecione uma camada'),
+            isExpanded: true,
+            items: const [
+              DropdownMenuItem(value: 'Bacias DF', child: Text('Bacias DF')),
+              DropdownMenuItem(value: 'RAS DF', child: Text('RAS DF')),
+            ],
+            onChanged: (String? newLayer) {
+              setState(() {
+                _camadaSelecionada = newLayer;
+                _featureSelecionada = null;
+                _featuresList.clear();
+              });
+
+              if (newLayer == 'Bacias DF') {
+                _loadBacias();
+              } else if (newLayer == 'RAS DF') {
+                _loadRas();
+              }
+            },
           ),
-          if (_currentPolygons.isNotEmpty)
-            PolygonLayer(
-              polygons: _currentPolygons.map((polygon) {
-                return Polygon(
-                  points: polygon,
-                  color: Colors.blue.withOpacity(0.3),
-                  isFilled: true,
-                  borderColor: Colors.blue,
-                  borderStrokeWidth: 2.0,
+
+          if (_featuresList.isNotEmpty)
+            DropdownButton<String>(
+              value: _featureSelecionada,
+              hint: const Text('Selecione um item'),
+              isExpanded: true,
+              items: _featuresList.map((feature) {
+                return DropdownMenuItem<String>(
+                  value: feature,
+                  child: Text(feature),
                 );
               }).toList(),
+              onChanged: (String? newFeature) {
+                setState(() {
+                  _featureSelecionada = newFeature;
+                });
+
+                if (_camadaSelecionada == 'Bacias DF') {
+                  _filterPolygons(_baciaService.features, newFeature, 'dsc_bacia');
+                } else if (_camadaSelecionada == 'RAS DF') {
+                  _filterPolygons(_rasService.features, newFeature, 'dsc_nome');
+                }
+              },
             ),
-          MarkerLayer(
-            markers: _markers,
+
+          Expanded(
+            child: FlutterMap(
+              options: const MapOptions(
+                center: LatLng(-15.7942, -47.8822),
+                zoom: 14.0,
+                interactiveFlags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c'],
+                ),
+                if (_currentPolygons.isNotEmpty)
+                  PolygonLayer(
+                    polygons: _currentPolygons.map((polygon) {
+                      return Polygon(
+                        points: polygon,
+                        color: Colors.blue.withOpacity(0.3),
+                        isFilled: true,
+                        borderColor: Colors.blue,
+                        borderStrokeWidth: 2.0,
+                      );
+                    }).toList(),
+                  ),
+                if (_markers.isNotEmpty)
+                  MarkerLayer(
+                    markers: _markers,
+                  ),
+              ],
+            ),
           ),
         ],
       ),
-    )]));
+    );
   }
 }
