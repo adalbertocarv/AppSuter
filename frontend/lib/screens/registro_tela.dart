@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/ponto_parada_provider.dart';
-import '../services/ponto_parada_service.dart';
+import '../services/gravar_ponto_parada_service.dart';
 import 'formulario_parada_tela.dart';
 import 'package:latlong2/latlong.dart';
 
