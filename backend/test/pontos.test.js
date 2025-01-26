@@ -81,7 +81,7 @@ describe('API de Pontos - Testes', () => {
       .set('Authorization', `Bearer ${token}`); // Adiciona o token no cabeçalho
 
     expect(res.statusCode).toBe(404);
-    expect(res.body.message).toBe('Ponto não encontrado');
+    expect(res.body.message).toBe('Parada não encontrada');
   });
 
   // Teste de atualização de um ponto existente

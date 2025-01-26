@@ -131,7 +131,7 @@ exports.criarParada = [
 
       // Validar campos obrigatórios
       if (!endereco || !sentido || !tipo || !geom) {
-        return res.status(400).json({ error: 'Missing required fields' });
+        return res.status(400).json({ error: 'Faltando campos necessários' });
       }
 
       const query = `
@@ -144,7 +144,7 @@ exports.criarParada = [
 
       res.status(201).json(result.rows[0]);
     } catch (error) {
-      console.error('Error creating point:', error.message, error.stack);
+      console.error('Erro criando parada:', error.message, error.stack);
       res.status(500).json({ error: error.message });
     }
   },

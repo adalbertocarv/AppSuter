@@ -15,7 +15,7 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => PointProvider()),
+        ChangeNotifierProvider(create: (_) => PointProvider()..loadPoints()), // Garante que as paradas sejam carregadas
       ],
       child: MyApp(),
     ),
@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, //desativar o banner de debug
+      debugShowCheckedModeBanner: false, // Desativa o banner de debug
       title: 'App Suter',
       theme: ThemeData(
         colorScheme: ColorScheme.light(
