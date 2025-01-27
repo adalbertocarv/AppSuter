@@ -30,7 +30,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   final ImagePicker _picker = ImagePicker();
 
   // Função para selecionar uma imagem da galeria
-  Future<void> _pickImage() async {
+  Future<void> _selecionaImagem() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
@@ -40,7 +40,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   }
 
   // Função para capturar uma imagem com a câmera
-  Future<void> _captureImage() async {
+  Future<void> _tirarFoto() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
       setState(() {
@@ -50,7 +50,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   }
 
   // Salvar a parada usando o provider
-  void _saveParada(BuildContext context) {
+  void _savarParada(BuildContext context) {
     final pointProvider = Provider.of<PointProvider>(context, listen: false);
 
     // Validar os campos obrigatórios
@@ -152,7 +152,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                   children: [
                     IntrinsicWidth(
                       child: ElevatedButton.icon(
-                        onPressed: _pickImage,
+                        onPressed: _selecionaImagem,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                           shape: RoundedRectangleBorder(
@@ -166,7 +166,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                     const SizedBox(width: 10), // Espaço entre os botões
                     IntrinsicWidth(
                       child: ElevatedButton.icon(
-                        onPressed: _captureImage,
+                        onPressed: _tirarFoto,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                           shape: RoundedRectangleBorder(
@@ -199,7 +199,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                       }
 
                       // Salva a parada e navega para RegistroTela
-                      _saveParada(context);
+                      _savarParada(context);
                       Navigator.of(context).push(
                         MaterialPageRoute(builder: (ctx) => TelaInicio()),
                       );

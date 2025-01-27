@@ -5,7 +5,7 @@ class BaciaService {
   final String baseUrl = 'http://100.83.163.53:3000'; // Altere para seu endpoint
   List<dynamic> features = []; // Cache for features
 
-  Future<List<dynamic>> fetchBacias() async {
+  Future<List<dynamic>> buscarBacias() async {
     final response = await http.get(Uri.parse('$baseUrl/bacias'));
 
     if (response.statusCode == 200) {

@@ -16,7 +16,7 @@ class _ParadasTelaState extends State<ParadasTela> {
   String? _camadaSelecionada;
   String? _featureSelecionada;
   List<String> _featuresList = [];
-  List<List<LatLng>> _currentPolygons = [];
+  List<List<LatLng>> _PoligonosAtuais = [];
 
   final BaciaService _baciaService = BaciaService();
   final RAService _rasService = RAService();
@@ -28,12 +28,12 @@ class _ParadasTelaState extends State<ParadasTela> {
   void initState() {
     super.initState();
     _camadaSelecionada = 'Bacias DF';
-    _loadBacias();
+    _carrgarBacias();
   }
 
   // Algoritmo Ray Casting otimizado para verificar se um ponto está dentro do polígono
   //Foi a implementação que funcionou, mas vai ser trocado por consulta direto no banco com within
-  bool _isPointInPolygon(LatLng point, List<LatLng> polygon) {
+  bool _paradaDentroPoligono(LatLng point, List<LatLng> polygon) {
     if (polygon.isEmpty) return false;
 
     bool inside = false;
@@ -51,56 +51,56 @@ class _ParadasTelaState extends State<ParadasTela> {
     return inside;
   }
 
-  Future<void> _loadBacias() async {
+  Future<void> _carrgarBacias() async {
     try {
-      final baciasFeatures = await _baciaService.fetchBacias();
+      final baciasFeatures = await _baciaService.buscarBacias();
       setState(() {
         _featuresList = baciasFeatures
             .map<String>((feature) => feature['properties']['dsc_bacia'])
             .toList();
         _featureSelecionada = _featuresList.isNotEmpty ? _featuresList.first : null;
-        _filterPolygons(baciasFeatures, _featureSelecionada, 'dsc_bacia');
+        _filtrarPoligonos(baciasFeatures, _featureSelecionada, 'dsc_bacia');
       });
     } catch (e) {
       print('Erro ao carregar Bacias: $e');
     }
   }
 
-  Future<void> _loadRas() async {
+  Future<void> _carregarRas() async {
     try {
-      final rasFeatures = await _rasService.fetchRA();
+      final rasFeatures = await _rasService.buscarRA();
       setState(() {
         _featuresList = rasFeatures
             .map<String>((feature) => feature['properties']['dsc_nome'])
             .toList();
         _featureSelecionada = _featuresList.isNotEmpty ? _featuresList.first : null;
-        _filterPolygons(rasFeatures, _featureSelecionada, 'dsc_nome');
+        _filtrarPoligonos(rasFeatures, _featureSelecionada, 'dsc_nome');
       });
     } catch (e) {
       print('Erro ao carregar RAS: $e');
     }
   }
 
-  void _filterPolygons(List<dynamic> features, String? selectedFeature, String propertyKey) {
+  void _filtrarPoligonos(List<dynamic> features, String? selectedFeature, String propertyKey) {
     if (selectedFeature == null) return;
 
     final selectedFeatures = features.where((feature) {
       return feature['properties'][propertyKey] == selectedFeature;
     }).toList();
 
-    List<List<LatLng>> polygons = [];
+    List<List<LatLng>> poligonos = [];
     for (var feature in selectedFeatures) {
       final geometry = feature['geometry'];
       if (geometry['type'] == 'Polygon') {
         for (var polygon in geometry['coordinates']) {
-          polygons.add(
+          poligonos.add(
             polygon.map<LatLng>((coord) => LatLng(coord[1], coord[0])).toList(),
           );
         }
       } else if (geometry['type'] == 'MultiPolygon') {
         for (var multipolygon in geometry['coordinates']) {
           for (var polygon in multipolygon) {
-            polygons.add(
+            poligonos.add(
               polygon.map<LatLng>((coord) => LatLng(coord[1], coord[0])).toList(),
             );
           }
@@ -109,17 +109,17 @@ class _ParadasTelaState extends State<ParadasTela> {
     }
 
     setState(() {
-      _currentPolygons = polygons;
-      _loadParadas(); // Carregar paradas após atualizar polígonos
+      _PoligonosAtuais = poligonos;
+      _carregarParadas(); // Carregar paradas após atualizar polígonos
     });
   }
 
-  Future<void> _loadParadas() async {
-    if (_currentPolygons.isEmpty) return;
+  Future<void> _carregarParadas() async {
+    if (_PoligonosAtuais.isEmpty) return;
 
     try {
       final paradas = await PontoParadaService.todasAsParadas();
-      List<Marker> filteredMarkers = [];
+      List<Marker> paradasFiltradas = [];
 
       for (var parada in paradas) {
         final point = LatLng(
@@ -128,10 +128,10 @@ class _ParadasTelaState extends State<ParadasTela> {
         );
 
         // Verifica se o ponto está em qualquer um dos polígonos
-        bool isInside = _currentPolygons.any((polygon) => _isPointInPolygon(point, polygon));
+        bool estaDentro = _PoligonosAtuais.any((polygon) => _paradaDentroPoligono(point, polygon));
 
-        if (isInside) {
-          filteredMarkers.add(
+        if (estaDentro) {
+          paradasFiltradas.add(
             Marker(
               point: point,
               width: 32,
@@ -149,7 +149,7 @@ class _ParadasTelaState extends State<ParadasTela> {
       }
 
       setState(() {
-        _markers = filteredMarkers;
+        _markers = paradasFiltradas;
         _isLoading = false;
       });
     } catch (e) {
@@ -232,9 +232,9 @@ class _ParadasTelaState extends State<ParadasTela> {
               });
 
               if (newLayer == 'Bacias DF') {
-                _loadBacias();
+                _carrgarBacias();
               } else if (newLayer == 'RAS DF') {
-                _loadRas();
+                _carregarRas();
               }
             },
           ),
@@ -256,9 +256,9 @@ class _ParadasTelaState extends State<ParadasTela> {
                 });
 
                 if (_camadaSelecionada == 'Bacias DF') {
-                  _filterPolygons(_baciaService.features, newFeature, 'dsc_bacia');
+                  _filtrarPoligonos(_baciaService.features, newFeature, 'dsc_bacia');
                 } else if (_camadaSelecionada == 'RAS DF') {
-                  _filterPolygons(_rasService.features, newFeature, 'dsc_nome');
+                  _filtrarPoligonos(_rasService.features, newFeature, 'dsc_nome');
                 }
               },
             ),
@@ -275,9 +275,9 @@ class _ParadasTelaState extends State<ParadasTela> {
                   urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                   subdomains: const ['a', 'b', 'c'],
                 ),
-                if (_currentPolygons.isNotEmpty)
+                if (_PoligonosAtuais.isNotEmpty)
                   PolygonLayer(
-                    polygons: _currentPolygons.map((polygon) {
+                    polygons: _PoligonosAtuais.map((polygon) {
                       return Polygon(
                         points: polygon,
                         color: Colors.blue.withOpacity(0.3),

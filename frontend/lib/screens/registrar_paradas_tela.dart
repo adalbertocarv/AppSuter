@@ -10,7 +10,7 @@ class RegistrarParadaTela extends StatefulWidget {
 }
 
 class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
-  LatLng? _selectedPoint; // Armazena o ponto selecionado
+  LatLng? _pontoSelecionado; // Armazena o ponto selecionado
   LatLng? _userLocation; // Armazena a localização do usuário
   bool _isLoading = true; // Indica se a localização está sendo carregada
   final MapController _mapController = MapController(); // Controlador do mapa
@@ -18,11 +18,11 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   @override
   void initState() {
     super.initState();
-    _getUserLocation(); // Obtém a localização do usuário ao iniciar
+    _localizacaoUsuario(); // Obtém a localização do usuário ao iniciar
   }
 
   // Método para obter a localização do usuário
-  Future<void> _getUserLocation() async {
+  Future<void> _localizacaoUsuario() async {
     try {
       // Verifica se os serviços de localização estão habilitados
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -85,7 +85,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   }
 
   // Método para centralizar o mapa na localização do usuário
-  void _centerMapOnUserLocation() {
+  void _centralizarLocalizacaoUsuario() {
     if (_userLocation != null) {
       _mapController.move(_userLocation!, 17.0); // Move o mapa para a localização do usuário
     } else {
@@ -98,13 +98,13 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     }
   }
 
-  void _confirmPoint() {
-    if (_selectedPoint != null) {
+  void _confirmarPonto() {
+    if (_pontoSelecionado != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => FormularioParadaTela(
-            latLng: _selectedPoint!,
+            latLng: _pontoSelecionado!,
             initialData: {},
           ),
         ),
@@ -136,7 +136,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                 onMapEvent: (event) {
                   setState(() {
                     // Atualiza o ponto selecionado baseado na posição central
-                    _selectedPoint = _mapController.center;
+                    _pontoSelecionado = _mapController.center;
                   });
                 },
               ),
@@ -161,19 +161,20 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                   ),
               ],
             ),
-          // Alfinete centralizado com offset
-          IgnorePointer(
-            child: Center(
-              child: Transform.translate(
-                offset: const Offset(0, -20), // Move o ícone para cima
-                child: const Icon(
-                  Icons.location_pin,
-                  color: Colors.red,
-                  size: 40,
+          // Alfinete centralizado com offset (só aparece após o mapa carregar)
+          if (!_isLoading)
+            IgnorePointer(
+              child: Center(
+                child: Transform.translate(
+                  offset: const Offset(0, -20), // Move o ícone para cima
+                  child: const Icon(
+                    Icons.location_pin,
+                    color: Colors.red,
+                    size: 40,
+                  ),
                 ),
               ),
             ),
-          ),
           // Botão para confirmar o ponto
                 Positioned(
                   bottom: 16,
@@ -184,7 +185,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                     child: FractionallySizedBox(
                       widthFactor: 0.5,
                       child: ElevatedButton(
-                        onPressed: _confirmPoint,
+                        onPressed: _confirmarPonto,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
@@ -201,7 +202,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                   top: 16, // Distância do topo
                   right: 16, // Distância da direita
                   child: FloatingActionButton(
-                    onPressed: _centerMapOnUserLocation,
+                    onPressed: _centralizarLocalizacaoUsuario,
                     child: const Icon(Icons.my_location),
                     tooltip: 'Minha localização',
                     backgroundColor: Colors.blue,

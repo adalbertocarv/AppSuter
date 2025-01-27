@@ -5,7 +5,7 @@ class RAService {
   final String baseUrl = 'http://100.83.163.53:3000'; // Replace with your backend URL
   List<dynamic> features = []; // Cache for RA features
 
-  Future<List<dynamic>> fetchRA() async {
+  Future<List<dynamic>> buscarRA() async {
     final response = await http.get(Uri.parse('$baseUrl/ras'));
 
     if (response.statusCode == 200) {
