@@ -1,15 +1,14 @@
 import 'dart:convert';
 import 'dart:async';
+import 'package:frontend/models/baseUrl_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
 class LoginService {
-  static const String baseUrl = "http://100.83.163.53:3000";
-
   // Login do usuário
   static Future<String?> login(String email, String senha) async {
-    final url = Uri.parse('$baseUrl/usuarios/login');
+    final url = Uri.parse('${caminhoBackend.baseUrl}/usuarios/login');
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},

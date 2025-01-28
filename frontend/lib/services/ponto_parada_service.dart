@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../models/baseUrl_model.dart';
 
 class PontoParadaService {
-  static const String baseUrl = "http://100.83.163.53:3000";
 
   // Método para buscar todas as paradas
   static Future<List<Map<String, dynamic>>> todasAsParadas() async {
-    final url = Uri.parse('$baseUrl/pontos');
+    final url = Uri.parse('${caminhoBackend.baseUrl}/pontos');
 
     try {
       final response = await http.get(url, headers: {

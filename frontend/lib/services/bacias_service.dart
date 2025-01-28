@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../models/baseUrl_model.dart';
 
 class BaciaService {
-  final String baseUrl = 'http://100.83.163.53:3000'; // Altere para seu endpoint
   List<dynamic> features = []; // Cache for features
 
   Future<List<dynamic>> buscarBacias() async {
-    final response = await http.get(Uri.parse('$baseUrl/bacias'));
+    final response = await http.get(Uri.parse('${caminhoBackend.baseUrl}/bacias'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);

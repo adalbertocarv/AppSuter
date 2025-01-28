@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/baseUrl_model.dart';
+
 class PontoParadaService {
-  static const String baseUrl = "http://100.83.163.53:3000";
 
   /// Obter o token JWT armazenado no SharedPreferences
   static Future<String?> _getToken() async {
@@ -29,7 +30,7 @@ class PontoParadaService {
         return false;
       }
 
-      final url = Uri.parse('$baseUrl/pontos');
+      final url = Uri.parse('${caminhoBackend.baseUrl}/pontos');
       final request = http.MultipartRequest('POST', url)
         ..fields['endereco'] = endereco
         ..fields['sentido'] = sentido
