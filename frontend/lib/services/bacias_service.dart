@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/baseUrl_model.dart';
 
 class BaciaService {
-  List<dynamic> features = []; // Cache for features
+  List<dynamic> features = []; // Cache para features
 
   Future<List<dynamic>> buscarBacias() async {
     final response = await http.get(Uri.parse('${caminhoBackend.baseUrl}/bacias'));

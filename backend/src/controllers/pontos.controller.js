@@ -186,7 +186,7 @@ exports.atualizarParada = async (req, res) => {
 
     res.status(200).json(result.rows[0]);
   } catch (error) {
-    console.error('Error updating point:', error.message);
+    console.error('Erro update ponto:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -203,7 +203,7 @@ exports.deletarParada = async (req, res) => {
 
     res.status(200).json({ message: 'Ponto removido com sucesso' });
   } catch (error) {
-    console.error('Error deleting point:', error.message);
+    console.error('Erro deletando o ponto:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
