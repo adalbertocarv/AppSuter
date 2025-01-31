@@ -15,6 +15,7 @@ class ParadasTela extends StatefulWidget {
 class _ParadasTelaState extends State<ParadasTela> {
   String? _camadaSelecionada;
   String? _featureSelecionada;
+    LatLng? _userLocation; // Armazena a localização do usuário
   List<String> _featuresList = [];
   List<List<LatLng>> _PoligonosAtuais = [];
 
@@ -265,10 +266,9 @@ class _ParadasTelaState extends State<ParadasTela> {
 
           Expanded(
             child: FlutterMap(
-              options: const MapOptions(
-                center: LatLng(-15.7942, -47.8822),
-                zoom: 14.0,
-                interactiveFlags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              options: MapOptions(
+                initialCenter: _userLocation ?? const LatLng(-15.7942, -47.8822),
+                initialZoom: 17.0,
               ),
               children: [
                 TileLayer(

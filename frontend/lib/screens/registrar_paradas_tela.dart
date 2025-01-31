@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'formulario_parada_tela.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 
 class RegistrarParadaTela extends StatefulWidget {
   @override
@@ -14,6 +15,10 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   LatLng? _userLocation; // Armazena a localização do usuário
   bool _isLoading = true; // Indica se a localização está sendo carregada
   final MapController _mapController = MapController(); // Controlador do mapa
+
+  final _tileProvider = FMTCTileProvider(
+    stores: const {'mapStore': BrowseStoreStrategy.readUpdateCreate},
+  );
 
   @override
   void initState() {
@@ -130,22 +135,22 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
             FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                center: _userLocation ?? const LatLng(-15.7942, -47.8822),
-                zoom: 17.0,
-                interactiveFlags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                initialCenter: _userLocation ?? const LatLng(-15.7942, -47.8822),
+                initialZoom: 17.0,
                 onMapEvent: (event) {
                   setState(() {
                     // Atualiza o ponto selecionado baseado na posição central
-                    _pontoSelecionado = _mapController.center;
+                    _pontoSelecionado = _mapController.camera.center;
                   });
                 },
               ),
               children: [
-                TileLayer(
-                  urlTemplate:
-                  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  subdomains: const ['a', 'b', 'c'],
-                ),
+                 TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.example.app',
+          tileProvider: _tileProvider,
+          // Other parameters as normal
+        ),
                 if (_userLocation != null)
                   MarkerLayer(
                     markers: [
