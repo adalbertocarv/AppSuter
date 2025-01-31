@@ -61,7 +61,8 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
       if (permission == LocationPermission.deniedForever) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Permissão de localização negada permanentemente. Habilite nas configurações.'),
+            content: Text(
+                'Permissão de localização negada permanentemente. Habilite nas configurações.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -92,7 +93,8 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   // Método para centralizar o mapa na localização do usuário
   void _centralizarLocalizacaoUsuario() {
     if (_userLocation != null) {
-      _mapController.move(_userLocation!, 17.0); // Move o mapa para a localização do usuário
+      _mapController.move(
+          _userLocation!, 17.0); // Move o mapa para a localização do usuário
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -135,8 +137,18 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
             FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                initialCenter: _userLocation ?? const LatLng(-15.7942, -47.8822),
+                initialCenter:
+                    _userLocation ?? const LatLng(-15.7942, -47.8822),
                 initialZoom: 17.0,
+                interactionOptions: const InteractionOptions(
+                  enableMultiFingerGestureRace: true,
+                  flags: InteractiveFlag.doubleTapDragZoom |
+                      InteractiveFlag.doubleTapZoom |
+                      InteractiveFlag.drag |
+                      InteractiveFlag.flingAnimation |
+                      InteractiveFlag.pinchZoom |
+                      InteractiveFlag.scrollWheelZoom,
+                ),
                 onMapEvent: (event) {
                   setState(() {
                     // Atualiza o ponto selecionado baseado na posição central
@@ -145,12 +157,12 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                 },
               ),
               children: [
-                 TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.example.app',
-          tileProvider: _tileProvider,
-          // Other parameters as normal
-        ),
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.app',
+                  tileProvider: _tileProvider,
+                  // Other parameters as normal
+                ),
                 if (_userLocation != null)
                   MarkerLayer(
                     markers: [
@@ -181,38 +193,38 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
               ),
             ),
           // Botão para confirmar o ponto
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  right: 16,
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: FractionallySizedBox(
-                      widthFactor: 0.5,
-                      child: ElevatedButton(
-                        onPressed: _confirmarPonto,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        ),
-                        child: const Text('Confirmar Ponto'),
-                      ),
+          Positioned(
+            bottom: 16,
+            left: 16,
+            right: 16,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: FractionallySizedBox(
+                widthFactor: 0.5,
+                child: ElevatedButton(
+                  onPressed: _confirmarPonto,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
+                  child: const Text('Confirmar Ponto'),
                 ),
-                // Botão para centralizar na localização do usuário
-                Positioned(
-                  top: 16, // Distância do topo
-                  right: 16, // Distância da direita
-                  child: FloatingActionButton(
-                    onPressed: _centralizarLocalizacaoUsuario,
-                    child: const Icon(Icons.my_location),
-                    tooltip: 'Minha localização',
-                    backgroundColor: Colors.blue,
-                  ),
-                ),
+              ),
+            ),
+          ),
+          // Botão para centralizar na localização do usuário
+          Positioned(
+            top: 16, // Distância do topo
+            right: 16, // Distância da direita
+            child: FloatingActionButton(
+              onPressed: _centralizarLocalizacaoUsuario,
+              child: const Icon(Icons.my_location),
+              tooltip: 'Minha localização',
+              backgroundColor: Colors.blue,
+            ),
+          ),
         ],
       ),
     );
