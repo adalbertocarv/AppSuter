@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/ponto_parada_service.dart';
 import '../services/bacias_service.dart';
@@ -21,15 +23,99 @@ class _ParadasTelaState extends State<ParadasTela> {
 
   final BaciaService _baciaService = BaciaService();
   final RAService _rasService = RAService();
+  final MapController _mapController = MapController(); // Controlador do mapa
 
   List<Marker> _markers = [];
   bool _isLoading = true;
+
+  // Adiciona o tile provider com cache
+  final _tileProvider = FMTCTileProvider(
+    stores: const {'mapStore': BrowseStoreStrategy.readUpdateCreate},
+  );
 
   @override
   void initState() {
     super.initState();
     _camadaSelecionada = 'Bacias DF';
     _carrgarBacias();
+    _localizacaoUsuario(); // Obtém a localização do usuário ao iniciar
+  }
+
+  Future<void> _localizacaoUsuario() async {
+    try {
+      // Verifica se os serviços de localização estão habilitados
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Por favor, habilite a localização para continuar.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Verifica as permissões de localização
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        // Solicita permissão
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Permissão de localização negada.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+      }
+
+      // Se a permissão for negada permanentemente, redirecione para as configurações
+      if (permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Permissão de localização negada permanentemente. Habilite nas configurações.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        // Abre as configurações do app para o usuário habilitar manualmente
+        await Geolocator.openAppSettings();
+        return;
+      }
+
+      // Obtém a localização atual
+      Position position = await Geolocator.getCurrentPosition();
+      setState(() {
+        _userLocation = LatLng(position.latitude, position.longitude);
+        _isLoading = false;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao obter localização: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+  // Método para centralizar o mapa na localização do usuário
+  void _centralizarLocalizacaoUsuario() {
+    if (_userLocation != null) {
+      _mapController.move(
+          _userLocation!, 17.0); // Move o mapa para a localização do usuário
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Localização do usuário não disponível.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // Algoritmo Ray Casting otimizado para verificar se um ponto está dentro do polígono
@@ -265,35 +351,67 @@ class _ParadasTelaState extends State<ParadasTela> {
             ),
 
           Expanded(
-            child: FlutterMap(
-              options: MapOptions(
-                initialCenter: _userLocation ?? const LatLng(-15.7942, -47.8822),
-                initialZoom: 17.0,
-              ),
+            child: Stack(
               children: [
-                TileLayer(
-                  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  subdomains: const ['a', 'b', 'c'],
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _userLocation ?? const LatLng(-15.7942, -47.8822),
+                    initialZoom: 12.0,
+                    interactionOptions: const InteractionOptions(
+                      enableMultiFingerGestureRace: true,
+                      rotationWinGestures: MultiFingerGesture.none, // Impede gestos de rotação
+                    ),
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'dev.fleaflet.flutter_map.example',
+                      tileProvider: _tileProvider,
+                    ),
+                    if (_PoligonosAtuais.isNotEmpty)
+                      PolygonLayer(
+                        polygons: _PoligonosAtuais.map((polygon) {
+                          return Polygon(
+                            points: polygon,
+                            color: Colors.blue.withOpacity(0.3),
+                            isFilled: true,
+                            borderColor: Colors.blue,
+                            borderStrokeWidth: 2.0,
+                          );
+                        }).toList(),
+                      ),
+                    if (_markers.isNotEmpty || _userLocation != null)
+                      MarkerLayer(
+                        markers: [
+                          if (_userLocation != null)
+                            Marker(
+                              point: _userLocation!,
+                              child: const Icon(
+                                Icons.my_location,
+                                color: Colors.blue,
+                                size: 30,
+                              ),
+                            ),
+                          ..._markers,
+                        ],
+                      ),
+                  ],
                 ),
-                if (_PoligonosAtuais.isNotEmpty)
-                  PolygonLayer(
-                    polygons: _PoligonosAtuais.map((polygon) {
-                      return Polygon(
-                        points: polygon,
-                        color: Colors.blue.withOpacity(0.3),
-                        isFilled: true,
-                        borderColor: Colors.blue,
-                        borderStrokeWidth: 2.0,
-                      );
-                    }).toList(),
+                // Botão para centralizar na localização do usuário
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: FloatingActionButton(
+                    onPressed: _centralizarLocalizacaoUsuario,
+                    child: const Icon(Icons.my_location),
+                    tooltip: 'Minha localização',
+                    backgroundColor: Colors.blue,
                   ),
-                if (_markers.isNotEmpty)
-                  MarkerLayer(
-                    markers: _markers,
-                  ),
+                ),
               ],
             ),
-          ),
+          )
         ],
       ),
     );

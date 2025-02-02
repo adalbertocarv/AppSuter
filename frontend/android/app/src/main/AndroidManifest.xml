@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+        android:maxSdkVersion="28" />
+
     <application
         android:label="Ponto Parada"
         android:name="${applicationName}"

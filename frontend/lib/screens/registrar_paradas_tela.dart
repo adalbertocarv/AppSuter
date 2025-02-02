@@ -16,6 +16,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   bool _isLoading = true; // Indica se a localização está sendo carregada
   final MapController _mapController = MapController(); // Controlador do mapa
 
+  // Adiciona o tile provider com cache
   final _tileProvider = FMTCTileProvider(
     stores: const {'mapStore': BrowseStoreStrategy.readUpdateCreate},
   );
@@ -142,12 +143,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                 initialZoom: 17.0,
                 interactionOptions: const InteractionOptions(
                   enableMultiFingerGestureRace: true,
-                  flags: InteractiveFlag.doubleTapDragZoom |
-                      InteractiveFlag.doubleTapZoom |
-                      InteractiveFlag.drag |
-                      InteractiveFlag.flingAnimation |
-                      InteractiveFlag.pinchZoom |
-                      InteractiveFlag.scrollWheelZoom,
+                  rotationWinGestures: MultiFingerGesture.none, // Impede gestos de rotação
                 ),
                 onMapEvent: (event) {
                   setState(() {
@@ -159,9 +155,8 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
               children: [
                 TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.app',
+                  userAgentPackageName: 'dev.fleaflet.flutter_map.example',
                   tileProvider: _tileProvider,
-                  // Other parameters as normal
                 ),
                 if (_userLocation != null)
                   MarkerLayer(

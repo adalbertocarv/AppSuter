@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:frontend/providers/ponto_parada_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_tela.dart';
@@ -8,6 +9,12 @@ import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicialização do backend de cache (ObjectBox)
+  await FMTCObjectBoxBackend().initialise();
+
+  // Criação de um store de tiles chamado 'mapStore'
+  await FMTCStore('mapStore').manage.create();
 
   // Limpar o token ao iniciar o app
   final prefs = await SharedPreferences.getInstance();
@@ -42,7 +49,7 @@ class MyApp extends StatelessWidget {
           } else if (snapshot.hasData && snapshot.data != null) {
             return const TelaInicio();
           } else {
-            return const LoginScreen();
+            return const TelaInicio();
           }
         },
       ),
