@@ -359,8 +359,7 @@ class _ParadasTelaState extends State<ParadasTela> {
                     initialCenter: _userLocation ?? const LatLng(-15.7942, -47.8822),
                     initialZoom: 12.0,
                     interactionOptions: const InteractionOptions(
-                      enableMultiFingerGestureRace: true,
-                      rotationWinGestures: MultiFingerGesture.none, // Impede gestos de rotação
+                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                     ),
                   ),
                   children: [
