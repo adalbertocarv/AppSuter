@@ -14,7 +14,7 @@ class MapPage extends StatefulWidget {
 class _MapPageState extends State<MapPage> {
   List<LatLng> polylinePoints = [];
   final List<LatLng> interpolatedPoints = [];
-  bool _isLoading = true;  // Indica se os pontos estão sendo carregados
+  bool _isLoading = true; // Indica se os pontos estão sendo carregados
 
   @override
   void initState() {
