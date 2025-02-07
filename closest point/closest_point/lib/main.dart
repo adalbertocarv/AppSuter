@@ -1,5 +1,6 @@
+import 'package:closest_point/screens/vias.dart';
 import 'package:flutter/material.dart';
-import 'screens/map_screen.dart';
+import 'screens/interpolado_tela.dart';
 
 void main() => runApp(const closestpoint());
 
@@ -9,7 +10,7 @@ class closestpoint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: MapPage(),
+      home: MapaViasInterpoladas(),
     );
   }
 }

@@ -365,7 +365,7 @@ class _ParadasTelaState extends State<ParadasTela> {
                   children: [
                     TileLayer(
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'dev.fleaflet.flutter_map.example',
+                      userAgentPackageName: 'com.ponto.parada.frontend',
                       tileProvider: _tileProvider,
                     ),
                     if (_PoligonosAtuais.isNotEmpty)

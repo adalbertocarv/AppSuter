@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:latlong2/latlong.dart';
 import '../models/percurso_model.dart';
 import '../models/base_url.dart';
 

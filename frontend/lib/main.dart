@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:frontend/providers/ponto_parada_provider.dart';
+import 'package:frontend/widgets/consulta_endereco_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_tela.dart';
 import 'screens/tela_inicio.dart';
@@ -47,9 +48,9 @@ class MyApp extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasData && snapshot.data != null) {
-            return const TelaInicio();
+            return  TelaInicio();
           } else {
-            return const TelaInicio();
+            return  TelaInicio();
           }
         },
       ),

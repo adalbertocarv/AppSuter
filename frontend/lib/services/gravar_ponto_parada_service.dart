@@ -21,7 +21,7 @@ class PontoParadaService {
     required double longitude,
     required double latitude,
     required bool ativo,
-    String? imagemPath, // Caminho para a imagem (opcional)
+    String? imagemPath, required haAbrigo, required tipoAbrigo, required patologias, required acessibilidade, required linhasTransporte, required List<String> imagensPaths, required latLongInterpolado, // Caminho para a imagem (opcional)
   }) async {
     try {
       final token = await _getToken();

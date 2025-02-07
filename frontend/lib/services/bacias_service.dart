@@ -19,7 +19,7 @@ class BaciaService {
         throw Exception('Invalid JSON structure or "features" missing.');
       }
     } else {
-      throw Exception('alha para buscar Bacias. Status Code: ${response.statusCode}');
+      throw Exception('Falha para buscar Bacias. Status Code: ${response.statusCode}');
     }
   }
 }
