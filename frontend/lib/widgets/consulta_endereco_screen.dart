@@ -13,7 +13,7 @@ class _MapaConsultaScreenState extends State<MapaConsultaScreen> {
   final EnderecoService _enderecoService = EnderecoService();  // Instância do serviço
   String? _enderecoAtual;
 
-  Future<void> _buscarEndereco(LatLng coordenadas) async {
+/*  Future<void> _buscarEndereco(LatLng coordenadas) async {
     try {
       final endereco = await _enderecoService.buscarEndereco(
           coordenadas.latitude, coordenadas.longitude);
@@ -31,7 +31,7 @@ class _MapaConsultaScreenState extends State<MapaConsultaScreen> {
       );
     }
   }
-
+*/
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,9 +41,9 @@ class _MapaConsultaScreenState extends State<MapaConsultaScreen> {
         options: MapOptions(
           initialCenter: const LatLng(-15.7942, -47.8822),  // Brasília como ponto inicial
           initialZoom: 13.0,
-          onTap: (tapPosition, latlng) {
+         /* onTap: (tapPosition, latlng) {
             _buscarEndereco(latlng);  // Consulta o endereço ao clicar no mapa
-          },
+          },*/
         ),
         children: [
           TileLayer(

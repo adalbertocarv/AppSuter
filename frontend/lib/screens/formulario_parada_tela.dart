@@ -61,7 +61,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   Future<void> _fetchShelterTypes() async {
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
-      _shelterTypes = ['Abrigo Tipo II', 'Abrigo Tipo C Novo', 'Abrigo Tipo Reduzido'];
+      _shelterTypes = ['Abrigo Tipo C Novo','Abrigo Tipo C', 'Abrigo Tipo Reduzido', 'Abrigo Padrão I', 'Abrigo Padrão II', 'Abrigo tradicional (Niemayer- Sabino Barroso)', 'Abrigo Concretado in loco', 'Abrigo Concreto DER', 'Abrigo Canalete 90', 'Metrobel', 'Abrigo Cemusa 2001', 'Abrigo Cemusa Foste', 'Abrigo Cemusa Grimshaw', 'Abrigo Metálico/Brasileirinho', 'Abrigo Especial (Aeroporto)', 'Abrigo Oval', 'Abrigo Lelé'];
     });
   }
 
@@ -187,7 +187,10 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                   items: _shelterTypes.map((String type) {
                     return DropdownMenuItem<String>(
                       value: type,
-                      child: Text(type),
+                      child: Text(
+                        type.length > 30 ? '${type.substring(0, 27)}...' : type,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     );
                   }).toList(),
                   onChanged: (value) {
@@ -226,15 +229,6 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                 onChanged: (value) {
                   setState(() {
                     _isPublicTransport = value;
-                  });
-                },
-              ),
-              SwitchListTile(
-                title: const Text('Ativo'),
-                value: _isActive,
-                onChanged: (value) {
-                  setState(() {
-                    _isActive = value;
                   });
                 },
               ),

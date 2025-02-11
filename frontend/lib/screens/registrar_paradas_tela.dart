@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import '../providers/ponto_parada_provider.dart';
 import 'formulario_parada_tela.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
-import '../widgets/progresso_download_widget.dart';
+//import '../widgets/progresso_download_widget.dart';
 import '../services/enderecoOSM_service.dart';
 import '../services/via_service.dart';
 
@@ -27,10 +27,11 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   LatLng? _pontoInterpolado; // Ponto interpolado confirmado
   LatLng? _userLocation; // Armazena a localização do usuário
   bool _isLoading = true; // Indica se a localização está sendo carregada
-  bool _baixando = false; // Controla se o download está ativo
+  //bool _baixando = false; // Controla se o download está ativo
   bool _viaConfirmada = false; // Indica se a via foi confirmada
+  Timer? _timer; //consultar polylines a cada 30s
 
-  double _downloadProgress = 0.0; // Progresso do download (0 a 1)
+  //double _downloadProgress = 0.0; // Progresso do download (0 a 1)
 
   List<Polyline> _polylines = [];
   List<LatLng> _consolidatedPoints = [];
@@ -52,7 +53,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   void initState() {
     super.initState();
     _localizacaoUsuario();
-    _baixarTilesBrasilia();
+    //_baixarTilesBrasilia();
     _carregarViasComLocalizacaoAtual();
 
     // Escuta mudanças no PointProvider para limpar marcadores
@@ -68,9 +69,11 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   @override
   void dispose() {
     // Cancela os streams ao desmontar o widget
-    _downloadProgressSubscription?.cancel();
-    _tileEventSubscription?.cancel();
+    //_downloadProgressSubscription?.cancel();
+    //_tileEventSubscription?.cancel();
+    _iniciarAtualizacaoAutomatica();
     _mapController.dispose();
+    _timer?.cancel(); // Cancela o timer ao sair da tela
     super.dispose();
   }
   /// Função para limpar todos os pontos
@@ -90,6 +93,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
       ),
     );
   }
+
   Future<void> _carregarViasComLocalizacaoAtual() async {
     try {
       Position posicaoAtual = await Geolocator.getCurrentPosition(
@@ -108,20 +112,47 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     }
   }
 
+  // Método para iniciar a atualização automática
+  void _iniciarAtualizacaoAutomatica() {
+    _timer = Timer.periodic(Duration(seconds: 30), (timer) {
+      _carregarViasComLocalizacaoAtual();
+    });
+  }
+
   Future<void> _confirmarPonto() async {
     if (_pontoSelecionado != null) {
       try {
+        // Mostra feedback visual enquanto busca o endereço
+        /*ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Buscando endereço...'),
+            backgroundColor: Colors.blueAccent,
+          ),
+        );
+         */
+
+        // Chama o serviço para buscar o endereço
         final endereco = await _enderecoService.buscarEndereco(
           _pontoSelecionado!.latitude,
           _pontoSelecionado!.longitude,
         );
 
+        // Atualiza o estado com os dados recebidos
         setState(() {
           _pontoParadaConfirmado = _pontoSelecionado;
-          _enderecoAtual = endereco.displayName;
-          _viaConfirmada = false;  // Reinicia o estado de confirmação da via
+          _enderecoAtual = endereco.formattedAddress;  // Usa o endereço formatado corretamente
+          _viaConfirmada = false;  // Reinicia o estado da via
         });
+
+        // Mostra mensagem de sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ponto confirmado com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
       } catch (e) {
+        // Mostra o erro no SnackBar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao buscar o endereço: $e')),
         );
@@ -233,7 +264,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     return LatLng(projectedY, projectedX);
   }
 
-  Future<void> _baixarTilesBrasilia() async {
+/*  Future<void> _baixarTilesBrasilia() async {
     setState(() {
       _baixando = true;
     });
@@ -248,8 +279,8 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     try {
       // Convertendo para uma região de download com zoom e parâmetros do servidor de tiles (camada do mapa)
       final downloadableRegion = region.toDownloadable(
-        minZoom: 12,
-        maxZoom: 17,
+        minZoom: 10,
+        maxZoom: 19,
         options: TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.ponto.parada.frontend',
@@ -290,7 +321,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
       }
     }
   }
-
+*/
   // Método para obter a localização do usuário
   Future<void> _localizacaoUsuario() async {
     try {
@@ -468,13 +499,14 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                       ),
                     ],
                   ),
-                if (_baixando)
+                /*if (_baixando)
                   Positioned(
                     bottom: 20,
                     left: 20,
                     right: 20,
                     child: ProgressoDownloadWidget(progresso: _downloadProgress),
                   ),
+                 */
               ],
             ),
           if (!_isLoading)
@@ -543,6 +575,17 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                 tooltip: 'Limpar todos os pontos',
               ),
             ),
+          // Botão para centralizar na localização do usuário
+          Positioned(
+            top: 16, // Distância do topo
+            right: 16, // Distância da direita
+            child: FloatingActionButton(
+              onPressed: _centralizarLocalizacaoUsuario,
+              child: const Icon(Icons.my_location),
+              tooltip: 'Minha localização',
+              backgroundColor: Colors.blue,
+            ),
+          ),
         ],
       ),
     );

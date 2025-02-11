@@ -9,29 +9,29 @@ const buscarViasProximas = async (req, res) => {
 
     try {
         const query = `
-      SELECT json_build_object(
+SELECT json_build_object(
     'type', 'FeatureCollection',
     'features', json_agg(
         json_build_object(
             'type', 'Feature',
-            'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326))::json,
+            'geometry', ST_AsGeoJSON(ST_Transform(geo_rede_via, 4326))::json,
             'properties', json_build_object(
-                'seq_vias', seq_vias,
-                'cod_seguimento_pista', cod_seguimento_pista,
-                'dsc_nome', dsc_nome,
-                'dsc_nome_seguimento_pista', dsc_nome_seguimento_pista,
-                'dsc_principal', dsc_principal,
-                'dsc_complemento', dsc_complemento,
-                'bln_rota_onibus', bln_rota_onibus
+                'seq_rede_via', seq_rede_via,
+                'seq_rede_v', seq_rede_v,
+                'dsc_rede_v', dsc_rede_v,
+                'seq_tipo_v', seq_tipo_v,
+                'num_veloci', num_veloci,
+                'bln_pavime', bln_pavime,
+                'num_extens', num_extens
             )
         )
     )
 ) AS geojson_result
-FROM public.tab_vias
+FROM public.tab_rede_vias trv
 WHERE ST_DWithin(
-    ST_Transform(geom, 4326)::geography, 
+    ST_Transform(geo_rede_via, 4326)::geography, 
     ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, 
-    50
+    100
 );
     `;
 

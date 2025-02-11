@@ -100,7 +100,12 @@ class RegistroTela extends StatelessWidget {
                 size: 40,
                 color: Colors.blue,
               ),
-              title: Text(point['endereco']),
+              title: Text(
+                point['endereco'].length > 40
+                    ? '${point['endereco'].substring(0, 37)}...'
+                    : point['endereco'],
+                overflow: TextOverflow.ellipsis, // Garante o truncamento se necessário
+              ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
