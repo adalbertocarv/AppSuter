@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import '../models/baseUrl_model.dart';
 
 class PointProvider with ChangeNotifier {
   List<Map<String, dynamic>> _points = [];
@@ -27,21 +29,29 @@ class PointProvider with ChangeNotifier {
   // Adicionar um novo ponto localmente e fazer POST no backend
   Future<void> addPoint({
     required String endereco,
-    required String sentido,
-    required String tipo,
+    required bool haAbrigo,
+    String? tipoAbrigo,
+    required bool patologias,
+    required bool acessibilidade,
+    required bool linhasTransporte,
     required double longitude,
     required double latitude,
     required bool ativo,
-    String? imagemPath,
+    required List<String> imagensPaths,
+    required String latLongInterpolado, // Adicionando o novo campo
   }) async {
     final newPoint = {
       "endereco": endereco,
-      "sentido": sentido,
-      "tipo": tipo,
+      "haAbrigo": haAbrigo,
+      "tipoAbrigo": tipoAbrigo,
+      "patologias": patologias,
+      "acessibilidade": acessibilidade,
+      "linhasTransporte": linhasTransporte,
       "longitude": longitude,
       "latitude": latitude,
       "ativo": ativo,
-      "imagemPath": imagemPath,
+      "imagensPaths": imagensPaths,
+      "latLongInterpolado": latLongInterpolado, // Novo campo adicionado ao ponto
     };
 
     // Adicionar localmente
@@ -51,16 +61,21 @@ class PointProvider with ChangeNotifier {
 
     // Fazer POST no backend
     try {
-      final url = Uri.parse("http://100.83.163.53:3000/pontos");
+      final url = Uri.parse('${caminhoBackend.baseUrl}/pontos');
       final request = http.MultipartRequest('POST', url)
         ..fields['endereco'] = endereco
-        ..fields['sentido'] = sentido
-        ..fields['tipo'] = tipo
+        ..fields['haAbrigo'] = haAbrigo.toString()
+        ..fields['tipoAbrigo'] = tipoAbrigo ?? ''
+        ..fields['patologias'] = patologias.toString()
+        ..fields['acessibilidade'] = acessibilidade.toString()
+        ..fields['linhasTransporte'] = linhasTransporte.toString()
         ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude})
-        ..fields['ativo'] = ativo.toString();
+        ..fields['ativo'] = ativo.toString()
+        ..fields['latLongInterpolado'] = latLongInterpolado; // Incluído no POST
 
-      if (imagemPath != null) {
-        request.files.add(await http.MultipartFile.fromPath('imagem', imagemPath));
+      // Adicionar múltiplas imagens
+      for (String imagePath in imagensPaths) {
+        request.files.add(await http.MultipartFile.fromPath('imagens', imagePath));
       }
 
       final response = await request.send();
@@ -78,12 +93,15 @@ class PointProvider with ChangeNotifier {
   Future<void> updatePoint(
       int index, {
         required String endereco,
-        required String sentido,
-        required String tipo,
+        required bool haAbrigo,
+        String? tipoAbrigo,
+        required bool patologias,
+        required bool acessibilidade,
+        required bool linhasTransporte,
         required double longitude,
         required double latitude,
         required bool ativo,
-        String? imagemPath,
+        required List<String> imagensPaths,
       }) async {
     if (index < 0 || index >= _points.length) {
       print('Índice inválido');
@@ -92,31 +110,38 @@ class PointProvider with ChangeNotifier {
 
     final updatedPoint = {
       "endereco": endereco,
-      "sentido": sentido,
-      "tipo": tipo,
+      "haAbrigo": haAbrigo,
+      "tipoAbrigo": tipoAbrigo,
+      "patologias": patologias,
+      "acessibilidade": acessibilidade,
+      "linhasTransporte": linhasTransporte,
       "longitude": longitude,
       "latitude": latitude,
       "ativo": ativo,
-      "imagemPath": imagemPath,
+      "imagensPaths": imagensPaths,
     };
 
-    // Atualizar localmente
+    // Atualiza o ponto existente
     _points[index] = updatedPoint;
     notifyListeners();
-    await _savePoints();
+    await _savePoints(); // Salva as alterações localmente
 
     // Fazer PUT no backend
     try {
-      final url = Uri.parse("http://100.83.163.53:3000/pontos/${_points[index]['id']}");
+      final url = Uri.parse('${caminhoBackend.baseUrl}/pontos/${_points[index]['id']}');
       final request = http.MultipartRequest('PUT', url)
         ..fields['endereco'] = endereco
-        ..fields['sentido'] = sentido
-        ..fields['tipo'] = tipo
+        ..fields['haAbrigo'] = haAbrigo.toString()
+        ..fields['tipoAbrigo'] = tipoAbrigo ?? ''
+        ..fields['patologias'] = patologias.toString()
+        ..fields['acessibilidade'] = acessibilidade.toString()
+        ..fields['linhasTransporte'] = linhasTransporte.toString()
         ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude})
         ..fields['ativo'] = ativo.toString();
 
-      if (imagemPath != null) {
-        request.files.add(await http.MultipartFile.fromPath('imagem', imagemPath));
+      // Adicionar múltiplas imagens
+      for (String imagePath in imagensPaths) {
+        request.files.add(await http.MultipartFile.fromPath('imagens', imagePath));
       }
 
       final response = await request.send();

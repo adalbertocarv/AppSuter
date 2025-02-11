@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:latlong2/latlong.dart';
 import '../providers/ponto_parada_provider.dart';
 import '../services/gravar_ponto_parada_service.dart';
 import 'formulario_parada_tela.dart';
-import 'package:latlong2/latlong.dart';
 
 class RegistroTela extends StatelessWidget {
   const RegistroTela({Key? key}) : super(key: key);
@@ -28,12 +28,16 @@ class RegistroTela extends StatelessWidget {
     for (var point in points) {
       final sucesso = await PontoParadaService.criarPonto(
         endereco: point['endereco'],
-        sentido: point['sentido'],
-        tipo: point['tipo'],
+        haAbrigo: point['haAbrigo'],
+        tipoAbrigo: point['tipoAbrigo'],
+        patologias: point['patologias'],
+        acessibilidade: point['acessibilidade'],
+        linhasTransporte: point['linhasTransporte'],
         longitude: point['longitude'],
         latitude: point['latitude'],
         ativo: point['ativo'],
-        imagemPath: point['imagemPath'],
+        imagensPaths: List<String>.from(point['imagensPaths'] ?? []),
+        latLongInterpolado: point['latLongInterpolado'] ?? '', sentido: '', tipo: '',
       );
 
       if (!sucesso) {
@@ -67,9 +71,9 @@ class RegistroTela extends StatelessWidget {
 
     return Scaffold(
       body: points.isEmpty
-          ? Center(
+          ? const Center(
         child: Padding(
-          padding: const EdgeInsets.all(80.0), // Deadzone
+          padding: EdgeInsets.all(80.0),
           child: Text(
             'Paradas criadas estarão disponíveis aqui para gravar ao banco de dados',
             textAlign: TextAlign.center,
@@ -82,12 +86,11 @@ class RegistroTela extends StatelessWidget {
         itemBuilder: (ctx, index) {
           final point = points[index];
           return Card(
-            margin:
-            const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: ListTile(
-              leading: point['imagemPath'] != null
+              leading: point['imagensPaths'] != null && point['imagensPaths'].isNotEmpty
                   ? Image.file(
-                File(point['imagemPath']),
+                File(point['imagensPaths'][0]),
                 width: 50,
                 height: 50,
                 fit: BoxFit.cover,
@@ -97,17 +100,25 @@ class RegistroTela extends StatelessWidget {
                 size: 40,
                 color: Colors.blue,
               ),
-              title: Text(point['endereco']),
+              title: Text(
+                point['endereco'].length > 40
+                    ? '${point['endereco'].substring(0, 37)}...'
+                    : point['endereco'],
+                overflow: TextOverflow.ellipsis, // Garante o truncamento se necessário
+              ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Sentido: ${point['sentido']}'),
-                  Text('Tipo: ${point['tipo']}'),
+                  Text('Há Abrigo: ${point['haAbrigo'] ? 'Sim' : 'Não'}'),
+                  if (point['haAbrigo'] && point['tipoAbrigo'] != null)
+                    Text('Tipo de Abrigo: ${point['tipoAbrigo']}'),
+                  Text('Patologias: ${point['patologias'] ? 'Sim' : 'Não'}'),
+                  Text('Acessibilidade: ${point['acessibilidade'] ? 'Sim' : 'Não'}'),
+                  Text('Linhas de Transporte: ${point['linhasTransporte'] ? 'Sim' : 'Não'}'),
                   Text('Ativo: ${point['ativo'] ? 'Sim' : 'Não'}'),
                   Text(
                     'Lat: ${point['latitude']}, Lon: ${point['longitude']}',
-                    style:
-                    const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ),
@@ -116,19 +127,18 @@ class RegistroTela extends StatelessWidget {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (ctx) => FormularioParadaTela(
-                            latLng: LatLng(
-                              point['latitude'],
-                              point['longitude'],
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (ctx) => FormularioParadaTela(
+                              latLng: LatLng(point['latitude'], point['longitude']),
+                              initialData: point,
+                              latLongInterpolado: point['latLongInterpolado'] ?? '',
+                              index: index, // Passa o índice do ponto atual
                             ),
-                            initialData: point, // Passa os dados para edição
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      }
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
