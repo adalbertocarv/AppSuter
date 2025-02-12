@@ -1,12 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../models/baseUrl_model.dart';
 
 class PontoParadaService {
-
   /// Obter o token JWT armazenado no SharedPreferences
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -20,8 +17,14 @@ class PontoParadaService {
     required String tipo,
     required double longitude,
     required double latitude,
-    required bool ativo,
-    String? imagemPath, required haAbrigo, required tipoAbrigo, required patologias, required acessibilidade, required linhasTransporte, required List<String> imagensPaths, required latLongInterpolado, // Caminho para a imagem (opcional)
+    String? imagemPath,
+    required haAbrigo,
+    required tipoAbrigo,
+    required patologias,
+    required acessibilidade,
+    required linhasTransporte,
+    required List<String> imagensPaths,
+    required latLongInterpolado,
   }) async {
     try {
       final token = await _getToken();
@@ -36,12 +39,13 @@ class PontoParadaService {
         ..fields['sentido'] = sentido
         ..fields['tipo'] = tipo
         ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude})
-        ..fields['ativo'] = ativo.toString()
-        ..headers['Authorization'] = 'Bearer $token'; // Adiciona o token no cabeçalho
+        ..headers['Authorization'] =
+            'Bearer $token'; // Adiciona o token no cabeçalho
 
       // Adiciona a imagem, se existir
       if (imagemPath != null) {
-        request.files.add(await http.MultipartFile.fromPath('imagem', imagemPath));
+        request.files
+            .add(await http.MultipartFile.fromPath('imagem', imagemPath));
       }
 
       final response = await request.send();

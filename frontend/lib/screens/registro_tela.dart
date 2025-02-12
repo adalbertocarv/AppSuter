@@ -35,7 +35,6 @@ class RegistroTela extends StatelessWidget {
         linhasTransporte: point['linhasTransporte'],
         longitude: point['longitude'],
         latitude: point['latitude'],
-        ativo: point['ativo'],
         imagensPaths: List<String>.from(point['imagensPaths'] ?? []),
         latLongInterpolado: point['latLongInterpolado'] ?? '', sentido: '', tipo: '',
       );
@@ -115,7 +114,6 @@ class RegistroTela extends StatelessWidget {
                   Text('Patologias: ${point['patologias'] ? 'Sim' : 'Não'}'),
                   Text('Acessibilidade: ${point['acessibilidade'] ? 'Sim' : 'Não'}'),
                   Text('Linhas de Transporte: ${point['linhasTransporte'] ? 'Sim' : 'Não'}'),
-                  Text('Ativo: ${point['ativo'] ? 'Sim' : 'Não'}'),
                   Text(
                     'Lat: ${point['latitude']}, Lon: ${point['longitude']}',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
@@ -126,7 +124,7 @@ class RegistroTela extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blue),
+                      icon: const Icon(Icons.edit, color: Colors.blue),
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(

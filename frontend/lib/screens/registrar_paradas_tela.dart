@@ -5,11 +5,13 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import '../providers/ponto_parada_provider.dart';
+import '../services/paradas_service.dart';
 import 'formulario_parada_tela.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 //import '../widgets/progresso_download_widget.dart';
 import '../services/enderecoOSM_service.dart';
 import '../services/via_service.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 
 final EnderecoService _enderecoService = EnderecoService(); // Serviço de busca de endereço
 String? _enderecoAtual;
@@ -33,6 +35,14 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
 
   //double _downloadProgress = 0.0; // Progresso do download (0 a 1)
 
+  //paradas da base de dados já registrado
+  List<Marker> _markers = [];
+  final PopupController _popupController = PopupController();
+  final ParadasService _paradasService = ParadasService(); // Instância do serviço que busca GeoJSON da API
+  static const double _clusterSize = 50;
+  static const double _clusterRadius = 60;
+  static const EdgeInsets _clusterPadding = EdgeInsets.all(50);
+
   List<Polyline> _polylines = [];
   List<LatLng> _consolidatedPoints = [];
 
@@ -46,15 +56,19 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   final _store = const FMTCStore('mapStore'); // Store de cache de tiles
 
   // Assinaturas do stream
+  /*
   StreamSubscription<DownloadProgress>? _downloadProgressSubscription;
   StreamSubscription<TileEvent>? _tileEventSubscription;
+   */
 
   @override
   void initState() {
     super.initState();
     _localizacaoUsuario();
     //_baixarTilesBrasilia();
+    _carregarParadas();
     _carregarViasComLocalizacaoAtual();
+
 
     // Escuta mudanças no PointProvider para limpar marcadores
     Provider.of<PointProvider>(context, listen: false).addListener(() {
@@ -66,6 +80,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
       });
     });
   }
+
   @override
   void dispose() {
     // Cancela os streams ao desmontar o widget
@@ -76,6 +91,24 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     _timer?.cancel(); // Cancela o timer ao sair da tela
     super.dispose();
   }
+
+  Future<void> _carregarParadas() async {
+    try {
+      final paradas = await _paradasService.procurarParadas();
+      _markers = paradas.map((parada) {
+        final marker = Marker(
+          point: parada.point,
+          width: 32,
+          height: 32,
+          child: const Icon(Icons.location_on, color: Colors.blue, size: 40),
+        );
+        return marker;
+      }).toList();
+    } catch (e) {
+      // Lidar com erro, se necessário
+    }
+  }
+
   /// Função para limpar todos os pontos
   void _limparPontos() {
     setState(() {
@@ -449,6 +482,35 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                   userAgentPackageName: 'com.ponto.parada.frontend',
                   tileProvider: _tileProvider,
                 ),
+                // Clusterização apenas para _markers
+                if (_markers.isNotEmpty)
+                  MarkerClusterLayerWidget(
+                    options: MarkerClusterLayerOptions(
+                      maxClusterRadius: 60,
+                      size: const Size(40, 40),
+                      padding: const EdgeInsets.all(50),
+                      markers: _markers,
+                      builder: (context, markers) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              markers.length.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                // Outros marcadores não clusterizados
                 if (_userLocation != null)
                   MarkerLayer(
                     markers: [

@@ -26,26 +26,25 @@ class FormularioParadaTela extends StatefulWidget {
 
 class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   final TextEditingController _addressController = TextEditingController();
-  bool _hasShelter = false;
-  bool _hasPathologies = false;
-  bool _hasAccessibility = false;
-  bool _isPublicTransport = false;
-  bool _isActive = false;
+  bool _temHabrigo = false;
+  bool _temPatologia = false;
+  bool _temAcessibilidade = false;
+  bool _transportePublico = false;
   String? _selectedShelterType;
   List<String> _shelterTypes = [];
   List<File> _imageFiles = []; // Armazena múltiplas imagens
   final ImagePicker _picker = ImagePicker();
+  File? _imageFile;
 
   @override
   void initState() {
     super.initState();
     if (widget.initialData != null) {
       _addressController.text = widget.initialData?['endereco'] ?? '';
-      _hasShelter = widget.initialData?['haAbrigo'] ?? false;
-      _hasPathologies = widget.initialData?['patologias'] ?? false;
-      _hasAccessibility = widget.initialData?['acessibilidade'] ?? false;
-      _isPublicTransport = widget.initialData?['linhasTransporte'] ?? false;
-      _isActive = widget.initialData?['ativo'] ?? false;
+      _temHabrigo = widget.initialData?['haAbrigo'] ?? false;
+      _temPatologia = widget.initialData?['patologias'] ?? false;
+      _temAcessibilidade = widget.initialData?['acessibilidade'] ?? false;
+      _transportePublico = widget.initialData?['linhasTransporte'] ?? false;
       _selectedShelterType = widget.initialData?['tipoAbrigo'];
 
       // Carregar as imagens previamente salvas
@@ -55,17 +54,17 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
             .toList();
       }
     }
-    _fetchShelterTypes();
+    _buscarTiposAbrigos();
   }
 
-  Future<void> _fetchShelterTypes() async {
+  Future<void> _buscarTiposAbrigos() async {
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
       _shelterTypes = ['Abrigo Tipo C Novo','Abrigo Tipo C', 'Abrigo Tipo Reduzido', 'Abrigo Padrão I', 'Abrigo Padrão II', 'Abrigo tradicional (Niemayer- Sabino Barroso)', 'Abrigo Concretado in loco', 'Abrigo Concreto DER', 'Abrigo Canalete 90', 'Metrobel', 'Abrigo Cemusa 2001', 'Abrigo Cemusa Foste', 'Abrigo Cemusa Grimshaw', 'Abrigo Metálico/Brasileirinho', 'Abrigo Especial (Aeroporto)', 'Abrigo Oval', 'Abrigo Lelé'];
     });
   }
 
-  Future<void> _selectMultipleImages() async {
+  Future<void> _selecionarMultiplasimagens() async {
     final List<XFile>? pickedFiles = await _picker.pickMultiImage();
     if (pickedFiles != null) {
       setState(() {
@@ -74,13 +73,23 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     }
   }
 
-  void _removeImage(int index) {
+  // Função para capturar uma imagem com a câmera
+  Future<void> _tirarFoto() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.camera);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+  }
+
+  void _removerImagem(int index) {
     setState(() {
       _imageFiles.removeAt(index);
     });
   }
 
-  void _saveParada(BuildContext context) {
+  void _salvarParada(BuildContext context) {
     if (_addressController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -91,7 +100,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       return;
     }
 
-    if (_hasShelter && _selectedShelterType == null) {
+    if (_temHabrigo && _selectedShelterType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor, selecione o tipo de abrigo!'),
@@ -108,12 +117,11 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       pointProvider.updatePoint(
         widget.index!,
         endereco: _addressController.text,
-        haAbrigo: _hasShelter,
+        haAbrigo: _temHabrigo,
         tipoAbrigo: _selectedShelterType,
-        patologias: _hasPathologies,
-        acessibilidade: _hasAccessibility,
-        linhasTransporte: _isPublicTransport,
-        ativo: _isActive,
+        patologias: _temPatologia,
+        acessibilidade: _temAcessibilidade,
+        linhasTransporte: _transportePublico,
         latitude: widget.latLng.latitude,
         longitude: widget.latLng.longitude,
         imagensPaths: _imageFiles.map((file) => file.path).toList(),
@@ -122,12 +130,11 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       // Cria uma nova parada
       pointProvider.addPoint(
         endereco: _addressController.text,
-        haAbrigo: _hasShelter,
+        haAbrigo: _temHabrigo,
         tipoAbrigo: _selectedShelterType,
-        patologias: _hasPathologies,
-        acessibilidade: _hasAccessibility,
-        linhasTransporte: _isPublicTransport,
-        ativo: _isActive,
+        patologias: _temPatologia,
+        acessibilidade: _temAcessibilidade,
+        linhasTransporte: _transportePublico,
         latitude: widget.latLng.latitude,
         longitude: widget.latLng.longitude,
         latLongInterpolado: widget.latLongInterpolado,
@@ -167,19 +174,19 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
               const SizedBox(height: 10),
               SwitchListTile(
                 title: const Text('Há abrigo?'),
-                value: _hasShelter,
+                value: _temHabrigo,
                 onChanged: (value) {
                   setState(() {
-                    _hasShelter = value;
+                    _temHabrigo = value;
                     if (!value) {
                       _selectedShelterType = null;
-                      _hasPathologies = false;
-                      _hasAccessibility = false;
+                      _temPatologia = false;
+                      _temAcessibilidade = false;
                     }
                   });
                 },
               ),
-              if (_hasShelter) ...[
+              if (_temHabrigo) ...[
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: _selectedShelterType,
@@ -206,29 +213,29 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                 const SizedBox(height: 10),
                 SwitchListTile(
                   title: const Text('Patologias'),
-                  value: _hasPathologies,
+                  value: _temPatologia,
                   onChanged: (value) {
                     setState(() {
-                      _hasPathologies = value;
+                      _temPatologia = value;
                     });
                   },
                 ),
                 SwitchListTile(
                   title: const Text('Acessibilidade'),
-                  value: _hasAccessibility,
+                  value: _temAcessibilidade,
                   onChanged: (value) {
                     setState(() {
-                      _hasAccessibility = value;
+                      _temAcessibilidade = value;
                     });
                   },
                 ),
               ],
               SwitchListTile(
                 title: const Text('Linhas de transporte público ou escolar?'),
-                value: _isPublicTransport,
+                value: _transportePublico,
                 onChanged: (value) {
                   setState(() {
-                    _isPublicTransport = value;
+                    _transportePublico = value;
                   });
                 },
               ),
@@ -245,7 +252,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                     borderRadius: BorderRadius.circular(5),
                   ),
                 ),
-                onPressed: _selectMultipleImages,
+                onPressed: _selecionarMultiplasimagens,
                 icon: const Icon(Icons.image),
                 label: const Text('Selecionar Imagens'),
               )),
@@ -274,7 +281,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                           top: 0,
                           child: IconButton(
                             icon: const Icon(Icons.close, color: Colors.red),
-                            onPressed: () => _removeImage(index),
+                            onPressed: () => _removerImagem(index),
                           ),
                         ),
                       ],
@@ -284,7 +291,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
               const SizedBox(height: 20),
               Center(
                 child: ElevatedButton(
-                  onPressed: () => _saveParada(context),
+                  onPressed: () => _salvarParada(context),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                     shape: RoundedRectangleBorder(

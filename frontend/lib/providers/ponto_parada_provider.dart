@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -36,7 +35,6 @@ class PointProvider with ChangeNotifier {
     required bool linhasTransporte,
     required double longitude,
     required double latitude,
-    required bool ativo,
     required List<String> imagensPaths,
     required String latLongInterpolado, // Adicionando o novo campo
   }) async {
@@ -49,7 +47,6 @@ class PointProvider with ChangeNotifier {
       "linhasTransporte": linhasTransporte,
       "longitude": longitude,
       "latitude": latitude,
-      "ativo": ativo,
       "imagensPaths": imagensPaths,
       "latLongInterpolado": latLongInterpolado, // Novo campo adicionado ao ponto
     };
@@ -70,7 +67,6 @@ class PointProvider with ChangeNotifier {
         ..fields['acessibilidade'] = acessibilidade.toString()
         ..fields['linhasTransporte'] = linhasTransporte.toString()
         ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude})
-        ..fields['ativo'] = ativo.toString()
         ..fields['latLongInterpolado'] = latLongInterpolado; // Incluído no POST
 
       // Adicionar múltiplas imagens
@@ -100,7 +96,6 @@ class PointProvider with ChangeNotifier {
         required bool linhasTransporte,
         required double longitude,
         required double latitude,
-        required bool ativo,
         required List<String> imagensPaths,
       }) async {
     if (index < 0 || index >= _points.length) {
@@ -117,7 +112,6 @@ class PointProvider with ChangeNotifier {
       "linhasTransporte": linhasTransporte,
       "longitude": longitude,
       "latitude": latitude,
-      "ativo": ativo,
       "imagensPaths": imagensPaths,
     };
 
@@ -136,8 +130,7 @@ class PointProvider with ChangeNotifier {
         ..fields['patologias'] = patologias.toString()
         ..fields['acessibilidade'] = acessibilidade.toString()
         ..fields['linhasTransporte'] = linhasTransporte.toString()
-        ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude})
-        ..fields['ativo'] = ativo.toString();
+        ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude});
 
       // Adicionar múltiplas imagens
       for (String imagePath in imagensPaths) {

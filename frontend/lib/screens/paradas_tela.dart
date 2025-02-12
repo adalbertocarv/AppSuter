@@ -265,7 +265,6 @@ class _ParadasTelaState extends State<ParadasTela> {
             children: [
               Text('Sentido: ${parada['sentido']}'),
               Text('Tipo: ${parada['tipo']}'),
-              Text('Ativo: ${parada['ativo'] ? 'Sim' : 'Não'}'),
               Text('Latitude: ${parada['latitude']}'),
               Text('Longitude: ${parada['longitude']}'),
               if (parada['imagemUrl'] != null)
