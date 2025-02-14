@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'paradas_tela.dart';
+import 'package:frontend/screens/paradas_temporario_tela.dart';
+import 'paradas_banco_tela.dart';
 import 'registrar_paradas_tela.dart';
 import 'registro_tela.dart';
 import '../services/login_service.dart';
@@ -59,6 +60,16 @@ class _HomeScreenState extends State<TelaInicio> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const ParadasTela()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.location_on_outlined),
+              title: const Text('Paradas cadastradas temporarias'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ParadasTemporarioTela()),
                 );
               },
             ),

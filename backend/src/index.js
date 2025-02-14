@@ -16,6 +16,7 @@ const pontosRoutes = require('./routes/pontos.routes');
 const baciasRoutes = require('./routes/bacias.routes');
 const rasRoutes = require('./routes/ras.routes'); // Rotas de RAS
 const viasRoutes = require('./routes/vias.routes');  
+const paradasRoutes = require('./routes/paradas.routes');
 
 // Middlewares globais
 app.use(cors()); // Habilitar CORS
@@ -27,6 +28,7 @@ app.use('/usuarios', usuariosRoutes); // Rotas de usuários
 app.use('/bacias', baciasRoutes); //  rota para bacias
 app.use('/ras', rasRoutes); //  rota para RAS
 app.use('/vias', viasRoutes); //   rota para vias
+app.use('/paradas', paradasRoutes); 
 
 // Inicialização do servidor (somente fora de ambiente de teste)
 if (process.env.NODE_ENV !== 'test') {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:latlong2/latlong.dart';
 import '../providers/ponto_parada_provider.dart';
-import '../services/gravar_ponto_parada_service.dart';
+import '../services/gravar_paradas_service.dart';
 import 'formulario_parada_tela.dart';
 
 class RegistroTela extends StatelessWidget {
@@ -28,15 +28,13 @@ class RegistroTela extends StatelessWidget {
     for (var point in points) {
       final sucesso = await PontoParadaService.criarPonto(
         endereco: point['endereco'],
-        haAbrigo: point['haAbrigo'],
-        tipoAbrigo: point['tipoAbrigo'],
-        patologias: point['patologias'],
-        acessibilidade: point['acessibilidade'],
-        linhasTransporte: point['linhasTransporte'],
+        haAbrigo: point['haAbrigo'] ?? false,
+        linhasTransporte: point['linhasTransporte'] ?? false,
         longitude: point['longitude'],
         latitude: point['latitude'],
+        latLongInterpolado: point['latLongInterpolado'] ?? '',
         imagensPaths: List<String>.from(point['imagensPaths'] ?? []),
-        latLongInterpolado: point['latLongInterpolado'] ?? '', sentido: '', tipo: '',
+        abrigos: List<Map<String, dynamic>>.from(point['abrigos'] ?? []),
       );
 
       if (!sucesso) {
@@ -65,10 +63,11 @@ class RegistroTela extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final points = Provider.of<PointProvider>(context).points;
+    Widget build(BuildContext context) {
+      final points = Provider.of<PointProvider>(context).points;
+      final provider = Provider.of<PointProvider>(context, listen: false);
 
-    return Scaffold(
+      return Scaffold(
       body: points.isEmpty
           ? const Center(
         child: Padding(
@@ -108,14 +107,14 @@ class RegistroTela extends StatelessWidget {
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Há Abrigo: ${point['haAbrigo'] ? 'Sim' : 'Não'}'),
-                  if (point['haAbrigo'] && point['tipoAbrigo'] != null)
+                  Text('Há Abrigo: ${(point['haAbrigo'] ?? false) ? 'Sim' : 'Não'}'),
+                  if ((point['haAbrigo'] ?? false) && point['tipoAbrigo'] != null)
                     Text('Tipo de Abrigo: ${point['tipoAbrigo']}'),
-                  Text('Patologias: ${point['patologias'] ? 'Sim' : 'Não'}'),
-                  Text('Acessibilidade: ${point['acessibilidade'] ? 'Sim' : 'Não'}'),
-                  Text('Linhas de Transporte: ${point['linhasTransporte'] ? 'Sim' : 'Não'}'),
+                  Text('Patologias: ${(point['patologias'] ?? false) ? 'Sim' : 'Não'}'),
+                  Text('Acessibilidade: ${(point['acessibilidade'] ?? false) ? 'Sim' : 'Não'}'),
+                  Text('Linhas de Transporte: ${(point['linhasTransporte'] ?? false) ? 'Sim' : 'Não'}'),
                   Text(
-                    'Lat: ${point['latitude']}, Lon: ${point['longitude']}',
+                    'Lat: ${point['latitude'] ?? 'Desconhecido'}, Lon: ${point['longitude'] ?? 'Desconhecido'}',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],

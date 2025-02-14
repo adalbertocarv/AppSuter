@@ -35,6 +35,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   List<File> _imageFiles = []; // Armazena múltiplas imagens
   final ImagePicker _picker = ImagePicker();
   File? _imageFile;
+  List<Map<String, dynamic>> _shelters = [];
 
   @override
   void initState() {
@@ -53,9 +54,30 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
             .map((path) => File(path))
             .toList();
       }
+      if (widget.initialData != null && widget.initialData?['abrigos'] != null) {
+        _shelters = List<Map<String, dynamic>>.from(widget.initialData?['abrigos']);
+      }
+
     }
     _buscarTiposAbrigos();
   }
+
+  void _addShelter() {
+    setState(() {
+      _shelters.add({
+        "tipoAbrigo": null,
+        "temPatologia": false,
+        "temAcessibilidade": false
+      });
+    });
+  }
+
+  void _removeShelter(int index) {
+    setState(() {
+      _shelters.removeAt(index);
+    });
+  }
+
 
   Future<void> _buscarTiposAbrigos() async {
     await Future.delayed(const Duration(seconds: 1));
@@ -73,12 +95,12 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     }
   }
 
-  // Função para capturar uma imagem com a câmera
+// Função para capturar uma imagem com a câmera e adicioná-la à lista
   Future<void> _tirarFoto() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _imageFiles.add(File(pickedFile.path)); // Adiciona a foto à lista de imagens
       });
     }
   }
@@ -100,10 +122,10 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       return;
     }
 
-    if (_temHabrigo && _selectedShelterType == null) {
+    if (_temHabrigo && _shelters.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Por favor, selecione o tipo de abrigo!'),
+          content: Text('Adicione pelo menos um abrigo!'),
           backgroundColor: Colors.red,
         ),
       );
@@ -113,27 +135,21 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     final pointProvider = Provider.of<PointProvider>(context, listen: false);
 
     if (widget.index != null) {
-      // Atualiza a parada existente
       pointProvider.updatePoint(
         widget.index!,
         endereco: _addressController.text,
         haAbrigo: _temHabrigo,
-        tipoAbrigo: _selectedShelterType,
-        patologias: _temPatologia,
-        acessibilidade: _temAcessibilidade,
+        abrigos: _shelters, // Passa a lista completa de abrigos
         linhasTransporte: _transportePublico,
         latitude: widget.latLng.latitude,
         longitude: widget.latLng.longitude,
         imagensPaths: _imageFiles.map((file) => file.path).toList(),
       );
     } else {
-      // Cria uma nova parada
       pointProvider.addPoint(
         endereco: _addressController.text,
         haAbrigo: _temHabrigo,
-        tipoAbrigo: _selectedShelterType,
-        patologias: _temPatologia,
-        acessibilidade: _temAcessibilidade,
+        abrigos: _shelters, // Passa a lista completa de abrigos
         linhasTransporte: _transportePublico,
         latitude: widget.latLng.latitude,
         longitude: widget.latLng.longitude,
@@ -149,7 +165,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       ),
     );
 
-    Navigator.of(context).pop();  // Retorna à tela anterior
+    Navigator.of(context).pop();
   }
 
   @override
@@ -188,46 +204,74 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
               ),
               if (_temHabrigo) ...[
                 const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  value: _selectedShelterType,
-                  hint: const Text('Selecione o tipo de abrigo'),
-                  items: _shelterTypes.map((String type) {
-                    return DropdownMenuItem<String>(
-                      value: type,
-                      child: Text(
-                        type.length > 30 ? '${type.substring(0, 27)}...' : type,
-                        overflow: TextOverflow.ellipsis,
+                for (int i = 0; i < _shelters.length; i++) ...[
+                  Card(
+                    elevation: 3,
+                    margin: const EdgeInsets.symmetric(vertical: 5),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: _shelters[i]["tipoAbrigo"],
+                            hint: const Text('Selecione o tipo de abrigo'),
+                            items: _shelterTypes.map((String type) {
+                              return DropdownMenuItem<String>(
+                                value: type,
+                                child: Text(
+                                  type.length > 30 ? '${type.substring(0, 27)}...' : type,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _shelters[i]["tipoAbrigo"] = value;
+                              });
+                            },
+                            decoration: const InputDecoration(
+                              labelText: 'Tipo de Abrigo',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          SwitchListTile(
+                            title: const Text('Patologias'),
+                            value: _shelters[i]["temPatologia"],
+                            onChanged: (value) {
+                              setState(() {
+                                _shelters[i]["temPatologia"] = value;
+                              });
+                            },
+                          ),
+                          SwitchListTile(
+                            title: const Text('Acessibilidade'),
+                            value: _shelters[i]["temAcessibilidade"],
+                            onChanged: (value) {
+                              setState(() {
+                                _shelters[i]["temAcessibilidade"] = value;
+                              });
+                            },
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _removeShelter(i),
+                            ),
+                          ),
+                        ],
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedShelterType = value;
-                    });
-                  },
-                  decoration: const InputDecoration(
-                    labelText: 'Tipo de Abrigo',
-                    border: OutlineInputBorder(),
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 10),
-                SwitchListTile(
-                  title: const Text('Patologias'),
-                  value: _temPatologia,
-                  onChanged: (value) {
-                    setState(() {
-                      _temPatologia = value;
-                    });
-                  },
-                ),
-                SwitchListTile(
-                  title: const Text('Acessibilidade'),
-                  value: _temAcessibilidade,
-                  onChanged: (value) {
-                    setState(() {
-                      _temAcessibilidade = value;
-                    });
-                  },
+                Center(
+                  child: ElevatedButton.icon(
+                    onPressed: _addShelter,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Adicionar Abrigo'),
+                  ),
                 ),
               ],
               SwitchListTile(
@@ -245,18 +289,45 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
-              Center(child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5),
+              // Botões lado a lado para selecionar imagens e tirar foto
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  SizedBox(
+                    width: 150, // Define uma largura fixa para manter uniformidade
+                    height: 50, // Mantém altura fixa para ambos os botões
+                    child: ElevatedButton.icon(
+                      onPressed: _selecionarMultiplasimagens,
+                      icon: const Icon(Icons.image),
+                      label: const Text('Galeria'),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8), // Mantém formato quadrado
+                        ),
+                        fixedSize: const Size(150, 50), // Garante que ambos os botões tenham o mesmo tamanho
+                      ),
+                    ),
                   ),
-                ),
-                onPressed: _selecionarMultiplasimagens,
-                icon: const Icon(Icons.image),
-                label: const Text('Selecionar Imagens'),
-              )),
+                  SizedBox(
+                    width: 150,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: _tirarFoto,
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text('Câmera'),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        fixedSize: const Size(150, 50),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 10),
+
+              // Exibir imagens selecionadas
               if (_imageFiles.isNotEmpty)
                 GridView.builder(
                   shrinkWrap: true,

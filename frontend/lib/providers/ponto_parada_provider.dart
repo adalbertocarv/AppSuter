@@ -29,29 +29,25 @@ class PointProvider with ChangeNotifier {
   Future<void> addPoint({
     required String endereco,
     required bool haAbrigo,
-    String? tipoAbrigo,
-    required bool patologias,
-    required bool acessibilidade,
+    required List<Map<String, dynamic>> abrigos, // Agora aceita múltiplos abrigos
     required bool linhasTransporte,
     required double longitude,
     required double latitude,
     required List<String> imagensPaths,
-    required String latLongInterpolado, // Adicionando o novo campo
+    required String latLongInterpolado,
   }) async {
     final newPoint = {
       "endereco": endereco,
       "haAbrigo": haAbrigo,
-      "tipoAbrigo": tipoAbrigo,
-      "patologias": patologias,
-      "acessibilidade": acessibilidade,
+      "abrigos": abrigos, // Lista de abrigos
       "linhasTransporte": linhasTransporte,
       "longitude": longitude,
       "latitude": latitude,
       "imagensPaths": imagensPaths,
-      "latLongInterpolado": latLongInterpolado, // Novo campo adicionado ao ponto
+      "latLongInterpolado": latLongInterpolado,
     };
 
-    // Adicionar localmente
+    // Adiciona localmente
     _points.add(newPoint);
     notifyListeners();
     await _savePoints();
@@ -62,14 +58,12 @@ class PointProvider with ChangeNotifier {
       final request = http.MultipartRequest('POST', url)
         ..fields['endereco'] = endereco
         ..fields['haAbrigo'] = haAbrigo.toString()
-        ..fields['tipoAbrigo'] = tipoAbrigo ?? ''
-        ..fields['patologias'] = patologias.toString()
-        ..fields['acessibilidade'] = acessibilidade.toString()
         ..fields['linhasTransporte'] = linhasTransporte.toString()
         ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude})
-        ..fields['latLongInterpolado'] = latLongInterpolado; // Incluído no POST
+        ..fields['latLongInterpolado'] = latLongInterpolado
+        ..fields['abrigos'] = jsonEncode(abrigos); // Enviar lista de abrigos
 
-      // Adicionar múltiplas imagens
+      // Adiciona imagens ao request
       for (String imagePath in imagensPaths) {
         request.files.add(await http.MultipartFile.fromPath('imagens', imagePath));
       }
@@ -85,14 +79,13 @@ class PointProvider with ChangeNotifier {
     }
   }
 
+
   // Atualizar um ponto existente
   Future<void> updatePoint(
       int index, {
         required String endereco,
         required bool haAbrigo,
-        String? tipoAbrigo,
-        required bool patologias,
-        required bool acessibilidade,
+        required List<Map<String, dynamic>> abrigos, // Lista de abrigos
         required bool linhasTransporte,
         required double longitude,
         required double latitude,
@@ -106,19 +99,16 @@ class PointProvider with ChangeNotifier {
     final updatedPoint = {
       "endereco": endereco,
       "haAbrigo": haAbrigo,
-      "tipoAbrigo": tipoAbrigo,
-      "patologias": patologias,
-      "acessibilidade": acessibilidade,
+      "abrigos": abrigos, // Mantém os abrigos
       "linhasTransporte": linhasTransporte,
       "longitude": longitude,
       "latitude": latitude,
       "imagensPaths": imagensPaths,
     };
 
-    // Atualiza o ponto existente
     _points[index] = updatedPoint;
     notifyListeners();
-    await _savePoints(); // Salva as alterações localmente
+    await _savePoints();
 
     // Fazer PUT no backend
     try {
@@ -126,13 +116,10 @@ class PointProvider with ChangeNotifier {
       final request = http.MultipartRequest('PUT', url)
         ..fields['endereco'] = endereco
         ..fields['haAbrigo'] = haAbrigo.toString()
-        ..fields['tipoAbrigo'] = tipoAbrigo ?? ''
-        ..fields['patologias'] = patologias.toString()
-        ..fields['acessibilidade'] = acessibilidade.toString()
         ..fields['linhasTransporte'] = linhasTransporte.toString()
-        ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude});
+        ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude})
+        ..fields['abrigos'] = jsonEncode(abrigos);
 
-      // Adicionar múltiplas imagens
       for (String imagePath in imagensPaths) {
         request.files.add(await http.MultipartFile.fromPath('imagens', imagePath));
       }
@@ -147,6 +134,7 @@ class PointProvider with ChangeNotifier {
       print('Erro na atualização do ponto: $error');
     }
   }
+
 
   // Remover um ponto por índice
   void removePoint(int index) {
