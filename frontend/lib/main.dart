@@ -25,12 +25,12 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => PointProvider()..loadPoints()), // Garante que as paradas sejam carregadas
       ],
-      child: MyApp(),
+      child: PontoParada(),
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
+class PontoParada extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasData && snapshot.data != null) {
-            return  TelaInicio();
+            return  LoginScreen();
           } else {
             return  TelaInicio();
           }

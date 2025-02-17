@@ -5,13 +5,16 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import '../providers/ponto_parada_provider.dart';
+import '../services/paradas_service.dart';
 import 'formulario_parada_tela.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 //import '../widgets/progresso_download_widget.dart';
 import '../services/enderecoOSM_service.dart';
 import '../services/via_service.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 
-final EnderecoService _enderecoService = EnderecoService(); // Serviço de busca de endereço
+final EnderecoService _enderecoService =
+    EnderecoService(); // Serviço de busca de endereço
 String? _enderecoAtual;
 
 class RegistrarParadaTela extends StatefulWidget {
@@ -33,6 +36,12 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
 
   //double _downloadProgress = 0.0; // Progresso do download (0 a 1)
 
+  //paradas da base de dados já registrado
+  List<Marker> _markers = [];
+  final ParadasService _paradasService =
+      ParadasService(); // Instância do serviço que busca GeoJSON da API
+  bool _mostrarMarcadores = false; // Inicialmente visível
+
   List<Polyline> _polylines = [];
   List<LatLng> _consolidatedPoints = [];
 
@@ -46,14 +55,17 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   final _store = const FMTCStore('mapStore'); // Store de cache de tiles
 
   // Assinaturas do stream
+  /*
   StreamSubscription<DownloadProgress>? _downloadProgressSubscription;
   StreamSubscription<TileEvent>? _tileEventSubscription;
+   */
 
   @override
   void initState() {
     super.initState();
     _localizacaoUsuario();
     //_baixarTilesBrasilia();
+    _carregarParadas();
     _carregarViasComLocalizacaoAtual();
 
     // Escuta mudanças no PointProvider para limpar marcadores
@@ -66,6 +78,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
       });
     });
   }
+
   @override
   void dispose() {
     // Cancela os streams ao desmontar o widget
@@ -76,6 +89,31 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     _timer?.cancel(); // Cancela o timer ao sair da tela
     super.dispose();
   }
+
+  Future<void> _carregarParadas() async {
+    try {
+      final paradas = await _paradasService.procurarParadas();
+      _markers = paradas.map((parada) {
+        final marker = Marker(
+          point: parada.point,
+          width: 32,
+          height: 32,
+          child: Transform.translate(
+            offset: const Offset(0, -20),
+            child: const Icon(
+              Icons.location_pin,
+              color: Colors.blue,
+              size: 45,
+            ),
+          ),
+        );
+        return marker;
+      }).toList();
+    } catch (e) {
+      // Lidar com erro, se necessário
+    }
+  }
+
   /// Função para limpar todos os pontos
   void _limparPontos() {
     setState(() {
@@ -140,8 +178,9 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
         // Atualiza o estado com os dados recebidos
         setState(() {
           _pontoParadaConfirmado = _pontoSelecionado;
-          _enderecoAtual = endereco.formattedAddress;  // Usa o endereço formatado corretamente
-          _viaConfirmada = false;  // Reinicia o estado da via
+          _enderecoAtual = endereco
+              .formattedAddress; // Usa o endereço formatado corretamente
+          _viaConfirmada = false; // Reinicia o estado da via
         });
 
         // Mostra mensagem de sucesso
@@ -187,18 +226,17 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
 
       LatLng projectedPoint = pontoSobreLinha(point, start, end);
       double distancia =
-      const Distance().as(LengthUnit.Meter, point, projectedPoint);
-      double segmentLength =
-      const Distance().as(LengthUnit.Meter, start, end);
+          const Distance().as(LengthUnit.Meter, point, projectedPoint);
+      double segmentLength = const Distance().as(LengthUnit.Meter, start, end);
 
       if (distancia < distanciaMin) {
         distanciaMin = distancia;
         double projectionFactorOnSegment =
             const Distance().as(LengthUnit.Meter, start, projectedPoint) /
                 segmentLength;
-        projecaoMaisProxima = (accumulatedLength +
-            projectionFactorOnSegment * segmentLength) /
-            tamanhoTotal;
+        projecaoMaisProxima =
+            (accumulatedLength + projectionFactorOnSegment * segmentLength) /
+                tamanhoTotal;
       }
       accumulatedLength += segmentLength;
     }
@@ -209,8 +247,8 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   double tamanhoTotalLinha() {
     double length = 0.0;
     for (int i = 0; i < _consolidatedPoints.length - 1; i++) {
-      length += const Distance()
-          .as(LengthUnit.Meter, _consolidatedPoints[i], _consolidatedPoints[i + 1]);
+      length += const Distance().as(
+          LengthUnit.Meter, _consolidatedPoints[i], _consolidatedPoints[i + 1]);
     }
     return length;
   }
@@ -222,8 +260,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     for (int i = 0; i < _consolidatedPoints.length - 1; i++) {
       LatLng start = _consolidatedPoints[i];
       LatLng end = _consolidatedPoints[i + 1];
-      double segmentLength =
-      const Distance().as(LengthUnit.Meter, start, end);
+      double segmentLength = const Distance().as(LengthUnit.Meter, start, end);
 
       if (accumulatedDistance + segmentLength >= targetDistance) {
         double segmentFactor =
@@ -418,7 +455,6 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -430,7 +466,8 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
             FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                initialCenter: _userLocation ?? const LatLng(-15.7942, -47.8822),
+                initialCenter:
+                    _userLocation ?? const LatLng(-15.7942, -47.8822),
                 initialZoom: 17.0,
                 interactionOptions: const InteractionOptions(
                   flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
@@ -449,6 +486,41 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                   userAgentPackageName: 'com.ponto.parada.frontend',
                   tileProvider: _tileProvider,
                 ),
+                // Clusterização apenas para _markers
+                if (_mostrarMarcadores && _markers.isNotEmpty)
+                  MarkerClusterLayerWidget(
+                    options: MarkerClusterLayerOptions(
+                      maxClusterRadius: 100,
+                      size: const Size(40, 40),
+                      padding: const EdgeInsets.all(50),
+                      markers: _markers,
+                      builder: (context, markers) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              markers.length.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      showPolygon: true, // Exibe o polígono de agrupamento
+                      polygonOptions: PolygonOptions(
+                        borderColor: Colors.blue, // Cor da borda do polígono
+                        borderStrokeWidth: 3, // Largura da borda
+                        color: Colors.blue.withOpacity(0.2), // Cor de preenchimento com opacidade
+                      ),
+                    ),
+                  ),
+                // Outros marcadores não clusterizados
                 if (_userLocation != null)
                   MarkerLayer(
                     markers: [
@@ -482,6 +554,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                     ],
                   ),
                 if (_pontoInterpolado != null)
+                  //ponto interpolado
                   MarkerLayer(
                     markers: [
                       Marker(
@@ -529,19 +602,21 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
             child: ElevatedButton(
               onPressed: _viaConfirmada
                   ? () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => FormularioParadaTela(
-                      latLng: _pontoParadaConfirmado!,
-                      initialData: {'endereco': _enderecoAtual},
-                      latLongInterpolado:
-                      '${_pontoInterpolado!.latitude}, ${_pontoInterpolado!.longitude}',
-                    ),
-                  ),
-                );
-              }
-                  : (_pontoParadaConfirmado == null ? _confirmarPonto : _confirmarVia),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FormularioParadaTela(
+                            latLng: _pontoParadaConfirmado!,
+                            initialData: {'endereco': _enderecoAtual},
+                            latLongInterpolado:
+                                '${_pontoInterpolado!.latitude}, ${_pontoInterpolado!.longitude}',
+                          ),
+                        ),
+                      );
+                    }
+                  : (_pontoParadaConfirmado == null
+                      ? _confirmarPonto
+                      : _confirmarVia),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -549,14 +624,16 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                 ),
                 backgroundColor: _viaConfirmada
                     ? Colors.green
-                    : (_pontoParadaConfirmado == null ? Colors.blue : Colors.orange),
+                    : (_pontoParadaConfirmado == null
+                        ? Colors.blue
+                        : Colors.orange),
               ),
               child: Text(
                 _viaConfirmada
                     ? 'Cadastrar Ponto de Parada'
                     : (_pontoParadaConfirmado == null
-                    ? 'Confirmar Ponto Parada'
-                    : 'Confirmar Via da Parada'),
+                        ? 'Confirmar Ponto Parada'
+                        : 'Confirmar Via da Parada'),
                 style: const TextStyle(color: Colors.white),
               ),
             ),
@@ -564,7 +641,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
           if (_pontoSelecionado != null &&
               _pontoParadaConfirmado != null &&
               _pontoInterpolado != null &&
-              _viaConfirmada)  // Exibe o botão somente se houver marcadores
+              _viaConfirmada) // Exibe o botão somente se houver marcadores
             Positioned(
               top: 16,
               left: 16,
@@ -586,6 +663,24 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
               backgroundColor: Colors.blue,
             ),
           ),
+          Positioned(
+              top: 80,
+              right: 16,
+              child: FloatingActionButton(
+                onPressed: () {
+                  setState(() {
+                    _mostrarMarcadores =
+                        !_mostrarMarcadores; // Alterna entre true/false
+                  });
+                },
+                backgroundColor: _mostrarMarcadores ? Colors.blue : Colors.grey,
+                child: Icon(_mostrarMarcadores
+                    ? Icons.location_pin
+                    : Icons.location_off_sharp),
+                tooltip: _mostrarMarcadores
+                    ? "Ocultar Marcadores"
+                    : "Mostrar Marcadores",
+              ))
         ],
       ),
     );

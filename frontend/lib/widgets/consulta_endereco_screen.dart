@@ -38,8 +38,8 @@ class _MapaConsultaScreenState extends State<MapaConsultaScreen> {
       appBar: AppBar(title: const Text('Consulta de Endereço no Mapa')),
       body: FlutterMap(
         mapController: _mapController,
-        options: MapOptions(
-          initialCenter: const LatLng(-15.7942, -47.8822),  // Brasília como ponto inicial
+        options: const MapOptions(
+          initialCenter: LatLng(-15.7942, -47.8822),  // Brasília como ponto inicial
           initialZoom: 13.0,
          /* onTap: (tapPosition, latlng) {
             _buscarEndereco(latlng);  // Consulta o endereço ao clicar no mapa

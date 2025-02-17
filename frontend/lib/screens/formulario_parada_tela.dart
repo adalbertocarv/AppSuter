@@ -26,26 +26,26 @@ class FormularioParadaTela extends StatefulWidget {
 
 class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   final TextEditingController _addressController = TextEditingController();
-  bool _hasShelter = false;
-  bool _hasPathologies = false;
-  bool _hasAccessibility = false;
-  bool _isPublicTransport = false;
-  bool _isActive = false;
+  bool _temHabrigo = false;
+  bool _temPatologia = false;
+  bool _temAcessibilidade = false;
+  bool _transportePublico = false;
   String? _selectedShelterType;
   List<String> _shelterTypes = [];
   List<File> _imageFiles = []; // Armazena múltiplas imagens
   final ImagePicker _picker = ImagePicker();
+  File? _imageFile;
+  List<Map<String, dynamic>> _shelters = [];
 
   @override
   void initState() {
     super.initState();
     if (widget.initialData != null) {
       _addressController.text = widget.initialData?['endereco'] ?? '';
-      _hasShelter = widget.initialData?['haAbrigo'] ?? false;
-      _hasPathologies = widget.initialData?['patologias'] ?? false;
-      _hasAccessibility = widget.initialData?['acessibilidade'] ?? false;
-      _isPublicTransport = widget.initialData?['linhasTransporte'] ?? false;
-      _isActive = widget.initialData?['ativo'] ?? false;
+      _temHabrigo = widget.initialData?['haAbrigo'] ?? false;
+      _temPatologia = widget.initialData?['patologias'] ?? false;
+      _temAcessibilidade = widget.initialData?['acessibilidade'] ?? false;
+      _transportePublico = widget.initialData?['linhasTransporte'] ?? false;
       _selectedShelterType = widget.initialData?['tipoAbrigo'];
 
       // Carregar as imagens previamente salvas
@@ -54,18 +54,39 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
             .map((path) => File(path))
             .toList();
       }
+      if (widget.initialData != null && widget.initialData?['abrigos'] != null) {
+        _shelters = List<Map<String, dynamic>>.from(widget.initialData?['abrigos']);
+      }
+
     }
-    _fetchShelterTypes();
+    _buscarTiposAbrigos();
   }
 
-  Future<void> _fetchShelterTypes() async {
+  void _addShelter() {
+    setState(() {
+      _shelters.add({
+        "tipoAbrigo": null,
+        "temPatologia": false,
+        "temAcessibilidade": false
+      });
+    });
+  }
+
+  void _removeShelter(int index) {
+    setState(() {
+      _shelters.removeAt(index);
+    });
+  }
+
+
+  Future<void> _buscarTiposAbrigos() async {
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
       _shelterTypes = ['Abrigo Tipo C Novo','Abrigo Tipo C', 'Abrigo Tipo Reduzido', 'Abrigo Padrão I', 'Abrigo Padrão II', 'Abrigo tradicional (Niemayer- Sabino Barroso)', 'Abrigo Concretado in loco', 'Abrigo Concreto DER', 'Abrigo Canalete 90', 'Metrobel', 'Abrigo Cemusa 2001', 'Abrigo Cemusa Foste', 'Abrigo Cemusa Grimshaw', 'Abrigo Metálico/Brasileirinho', 'Abrigo Especial (Aeroporto)', 'Abrigo Oval', 'Abrigo Lelé'];
     });
   }
 
-  Future<void> _selectMultipleImages() async {
+  Future<void> _selecionarMultiplasimagens() async {
     final List<XFile>? pickedFiles = await _picker.pickMultiImage();
     if (pickedFiles != null) {
       setState(() {
@@ -74,13 +95,23 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     }
   }
 
-  void _removeImage(int index) {
+// Função para capturar uma imagem com a câmera e adicioná-la à lista
+  Future<void> _tirarFoto() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.camera);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFiles.add(File(pickedFile.path)); // Adiciona a foto à lista de imagens
+      });
+    }
+  }
+
+  void _removerImagem(int index) {
     setState(() {
       _imageFiles.removeAt(index);
     });
   }
 
-  void _saveParada(BuildContext context) {
+  void _salvarParada(BuildContext context) {
     if (_addressController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -91,10 +122,10 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       return;
     }
 
-    if (_hasShelter && _selectedShelterType == null) {
+    if (_temHabrigo && _shelters.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Por favor, selecione o tipo de abrigo!'),
+          content: Text('Adicione pelo menos um abrigo!'),
           backgroundColor: Colors.red,
         ),
       );
@@ -104,30 +135,22 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     final pointProvider = Provider.of<PointProvider>(context, listen: false);
 
     if (widget.index != null) {
-      // Atualiza a parada existente
       pointProvider.updatePoint(
         widget.index!,
         endereco: _addressController.text,
-        haAbrigo: _hasShelter,
-        tipoAbrigo: _selectedShelterType,
-        patologias: _hasPathologies,
-        acessibilidade: _hasAccessibility,
-        linhasTransporte: _isPublicTransport,
-        ativo: _isActive,
+        haAbrigo: _temHabrigo,
+        abrigos: _shelters, // Passa a lista completa de abrigos
+        linhasTransporte: _transportePublico,
         latitude: widget.latLng.latitude,
         longitude: widget.latLng.longitude,
         imagensPaths: _imageFiles.map((file) => file.path).toList(),
       );
     } else {
-      // Cria uma nova parada
       pointProvider.addPoint(
         endereco: _addressController.text,
-        haAbrigo: _hasShelter,
-        tipoAbrigo: _selectedShelterType,
-        patologias: _hasPathologies,
-        acessibilidade: _hasAccessibility,
-        linhasTransporte: _isPublicTransport,
-        ativo: _isActive,
+        haAbrigo: _temHabrigo,
+        abrigos: _shelters, // Passa a lista completa de abrigos
+        linhasTransporte: _transportePublico,
         latitude: widget.latLng.latitude,
         longitude: widget.latLng.longitude,
         latLongInterpolado: widget.latLongInterpolado,
@@ -142,7 +165,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       ),
     );
 
-    Navigator.of(context).pop();  // Retorna à tela anterior
+    Navigator.of(context).pop();
   }
 
   @override
@@ -167,68 +190,96 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
               const SizedBox(height: 10),
               SwitchListTile(
                 title: const Text('Há abrigo?'),
-                value: _hasShelter,
+                value: _temHabrigo,
                 onChanged: (value) {
                   setState(() {
-                    _hasShelter = value;
+                    _temHabrigo = value;
                     if (!value) {
                       _selectedShelterType = null;
-                      _hasPathologies = false;
-                      _hasAccessibility = false;
+                      _temPatologia = false;
+                      _temAcessibilidade = false;
                     }
                   });
                 },
               ),
-              if (_hasShelter) ...[
+              if (_temHabrigo) ...[
                 const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  value: _selectedShelterType,
-                  hint: const Text('Selecione o tipo de abrigo'),
-                  items: _shelterTypes.map((String type) {
-                    return DropdownMenuItem<String>(
-                      value: type,
-                      child: Text(
-                        type.length > 30 ? '${type.substring(0, 27)}...' : type,
-                        overflow: TextOverflow.ellipsis,
+                for (int i = 0; i < _shelters.length; i++) ...[
+                  Card(
+                    elevation: 3,
+                    margin: const EdgeInsets.symmetric(vertical: 5),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: _shelters[i]["tipoAbrigo"],
+                            hint: const Text('Selecione o tipo de abrigo'),
+                            items: _shelterTypes.map((String type) {
+                              return DropdownMenuItem<String>(
+                                value: type,
+                                child: Text(
+                                  type.length > 30 ? '${type.substring(0, 27)}...' : type,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _shelters[i]["tipoAbrigo"] = value;
+                              });
+                            },
+                            decoration: const InputDecoration(
+                              labelText: 'Tipo de Abrigo',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          SwitchListTile(
+                            title: const Text('Patologias'),
+                            value: _shelters[i]["temPatologia"],
+                            onChanged: (value) {
+                              setState(() {
+                                _shelters[i]["temPatologia"] = value;
+                              });
+                            },
+                          ),
+                          SwitchListTile(
+                            title: const Text('Acessibilidade'),
+                            value: _shelters[i]["temAcessibilidade"],
+                            onChanged: (value) {
+                              setState(() {
+                                _shelters[i]["temAcessibilidade"] = value;
+                              });
+                            },
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _removeShelter(i),
+                            ),
+                          ),
+                        ],
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedShelterType = value;
-                    });
-                  },
-                  decoration: const InputDecoration(
-                    labelText: 'Tipo de Abrigo',
-                    border: OutlineInputBorder(),
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 10),
-                SwitchListTile(
-                  title: const Text('Patologias'),
-                  value: _hasPathologies,
-                  onChanged: (value) {
-                    setState(() {
-                      _hasPathologies = value;
-                    });
-                  },
-                ),
-                SwitchListTile(
-                  title: const Text('Acessibilidade'),
-                  value: _hasAccessibility,
-                  onChanged: (value) {
-                    setState(() {
-                      _hasAccessibility = value;
-                    });
-                  },
+                Center(
+                  child: ElevatedButton.icon(
+                    onPressed: _addShelter,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Adicionar Abrigo'),
+                  ),
                 ),
               ],
               SwitchListTile(
                 title: const Text('Linhas de transporte público ou escolar?'),
-                value: _isPublicTransport,
+                value: _transportePublico,
                 onChanged: (value) {
                   setState(() {
-                    _isPublicTransport = value;
+                    _transportePublico = value;
                   });
                 },
               ),
@@ -238,18 +289,45 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
-              Center(child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5),
+              // Botões lado a lado para selecionar imagens e tirar foto
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  SizedBox(
+                    width: 150, // Define uma largura fixa para manter uniformidade
+                    height: 50, // Mantém altura fixa para ambos os botões
+                    child: ElevatedButton.icon(
+                      onPressed: _selecionarMultiplasimagens,
+                      icon: const Icon(Icons.image),
+                      label: const Text('Galeria'),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8), // Mantém formato quadrado
+                        ),
+                        fixedSize: const Size(150, 50), // Garante que ambos os botões tenham o mesmo tamanho
+                      ),
+                    ),
                   ),
-                ),
-                onPressed: _selectMultipleImages,
-                icon: const Icon(Icons.image),
-                label: const Text('Selecionar Imagens'),
-              )),
+                  SizedBox(
+                    width: 150,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: _tirarFoto,
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text('Câmera'),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        fixedSize: const Size(150, 50),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 10),
+
+              // Exibir imagens selecionadas
               if (_imageFiles.isNotEmpty)
                 GridView.builder(
                   shrinkWrap: true,
@@ -274,7 +352,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                           top: 0,
                           child: IconButton(
                             icon: const Icon(Icons.close, color: Colors.red),
-                            onPressed: () => _removeImage(index),
+                            onPressed: () => _removerImagem(index),
                           ),
                         ),
                       ],
@@ -284,7 +362,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
               const SizedBox(height: 20),
               Center(
                 child: ElevatedButton(
-                  onPressed: () => _saveParada(context),
+                  onPressed: () => _salvarParada(context),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                     shape: RoundedRectangleBorder(

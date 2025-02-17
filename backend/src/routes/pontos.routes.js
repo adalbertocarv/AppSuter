@@ -11,4 +11,6 @@ router.post('/', autenticarUsuario, pontosController.criarParada); // Cria um po
 router.put('/:id', autenticarUsuario, pontosController.atualizarParada); // Atualiza um ponto por ID
 router.delete('/:id', autenticarUsuario, pontosController.deletarParada); // Remove um ponto por ID
 
+router.post('/ponto-parada-completo', pontosController.criarPontoParadaCompleto);// Rota para cadastrar o ponto de parada completo
+
 module.exports = router;

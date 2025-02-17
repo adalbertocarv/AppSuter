@@ -207,3 +207,115 @@ exports.deletarParada = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+//----------------------------------------------------------------------------------------------------------------//
+//valeu chatGPT eh noiskkkkkkkkkkkkkkkkkk//
+
+exports.criarPontoParadaCompleto = async (req, res) => {
+    const client = await pool.connect(); // Inicia conexão com banco
+
+    try {
+        await client.query('BEGIN'); // Inicia a transação
+
+        const { usuario_id, latitude, longitude, endereco, ponto_interpolado, abrigo, imagens, vistoria } = req.body;
+
+        // 1️⃣ Criar o ponto de parada
+        const pontoResult = await client.query(
+            `INSERT INTO tab_ponto_parada (id_usuario, geom, endereco) 
+             VALUES ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326), $4) RETURNING id_ponto_parada`,
+            [usuario_id, longitude, latitude, endereco]
+        );
+        const idPontoParada = pontoResult.rows[0].id_ponto_parada;
+
+        // 2️⃣ Criar ponto interpolado (se existir)
+        if (ponto_interpolado) {
+            await client.query(
+                `INSERT INTO tab_ponto_interpol (id_ponto_parada, geom_interpol) 
+                 VALUES ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326))`,
+                [idPontoParada, ponto_interpolado.longitude, ponto_interpolado.latitude]
+            );
+        }
+
+        // 3️⃣ Criar abrigo (se existir)
+        let idAbrigo = null;
+        if (abrigo) {
+            const abrigoResult = await client.query(
+                `INSERT INTO tab_abrigo (id_ponto_parada, id_tipo_abrigo, inicio_vigencia) 
+                 VALUES ($1, $2, $3) RETURNING id_abrigo`,
+                [idPontoParada, abrigo.tipo_abrigo_id, abrigo.inicio_vigencia]
+            );
+            idAbrigo = abrigoResult.rows[0].id_abrigo;
+        }
+
+        // 4️⃣ Salvar imagens (se existirem)
+        if (imagens) {
+            for (const img of imagens) {
+                await client.query(
+                    `INSERT INTO tab_imagem (id_ponto_parada, id_abrigo, imagem) VALUES ($1, $2, $3)`,
+                    [idPontoParada, idAbrigo, Buffer.from(img.arquivo, 'base64')]
+                );
+            }
+        }
+
+        // 5️⃣ Criar vistoria (se existir)
+        let idVistoria = null;
+        if (vistoria) {
+            const vistoriaResult = await client.query(
+                `INSERT INTO tab_vistoria (id_ponto_parada, data_vistoria) 
+                 VALUES ($1, $2) RETURNING id_vistoria`,
+                [idPontoParada, vistoria.data_vistoria]
+            );
+            idVistoria = vistoriaResult.rows[0].id_vistoria;
+
+            // 6️⃣ Inserir patologias associadas à vistoria
+            if (vistoria.patologias) {
+                for (const idPatologia of vistoria.patologias) {
+                    await client.query(
+                        `INSERT INTO tab_vistoria_patologia (id_vistoria, id_abrigo, id_patologia) 
+                         VALUES ($1, $2, $3)`,
+                        [idVistoria, idAbrigo, idPatologia]
+                    );
+                }
+            }
+
+            // 7️⃣ Inserir acessibilidade associada à vistoria
+            if (vistoria.acessibilidade) {
+                for (const acessibilidade of vistoria.acessibilidade) {
+                    await client.query(
+                        `INSERT INTO tab_vistoria_acessibilidade (id_vistoria, id_abrigo, acessibilidade) 
+                         VALUES ($1, $2, $3)`,
+                        [idVistoria, idAbrigo, acessibilidade]
+                    );
+                }
+            }
+
+            // 8️⃣ Salvar imagens da vistoria
+            if (vistoria.imagens) {
+                for (const img of vistoria.imagens) {
+                    await client.query(
+                        `INSERT INTO tab_imagem (id_vistoria, imagem) VALUES ($1, $2)`,
+                        [idVistoria, Buffer.from(img.arquivo, 'base64')]
+                    );
+                }
+            }
+        }
+
+        // 🔥 Finaliza a transação
+        await client.query('COMMIT');
+
+        // ✅ Retorna sucesso
+        res.status(201).json({ 
+            id_ponto_parada: idPontoParada,
+            id_abrigo: idAbrigo,
+            id_vistoria: idVistoria,
+            message: "Ponto de parada cadastrado com sucesso!" 
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK'); // ⚠️ Se der erro, desfaz tudo
+        console.error(error);
+        res.status(500).json({ error: "Erro ao salvar ponto de parada." });
+    } finally {
+        client.release(); // Libera conexão
+    }
+};
