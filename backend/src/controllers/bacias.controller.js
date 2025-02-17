@@ -1,9 +1,7 @@
-const db = require('../db/db'); // Importa a conexão com o banco de dados
+const db = require('../db/db');
 
-// Controlador para buscar todas as bacias
 exports.getBacias = async (req, res) => {
   try {
-    // Query para buscar todas as bacias
     const query = `
 SELECT jsonb_build_object(
   'type', 'FeatureCollection',

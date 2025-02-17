@@ -9,9 +9,6 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
-
-// Rotas
-app.use('/pontos', require('./routes/pontos.routes'));
+app.use(express.json())
 
 module.exports = app;

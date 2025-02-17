@@ -209,6 +209,7 @@ exports.deletarParada = async (req, res) => {
 };
 
 //----------------------------------------------------------------------------------------------------------------//
+//valeu chatGPT eh noiskkkkkkkkkkkkkkkkkk//
 
 exports.criarPontoParadaCompleto = async (req, res) => {
     const client = await pool.connect(); // Inicia conexão com banco

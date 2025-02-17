@@ -1,9 +1,7 @@
-const db = require('../db/db'); // Importa a conexão com o banco de dados
+const db = require('../db/db'); 
 
-// Controlador para buscar todas as regiões administrativas (RAS)
 exports.getRas = async (req, res) => {
   try {
-    // Query para buscar as RAS com geometria em GeoJSON
     const query = `
 SELECT jsonb_build_object(
   'type', 'FeatureCollection',
@@ -24,7 +22,6 @@ FROM public.tab_ras;
     `;
     const result = await db.query(query);
 
-    // Retorna os dados em formato JSON
     res.status(200).json(result.rows);
   } catch (error) {
     console.error('Erro ao buscar as RAS:', error.message);

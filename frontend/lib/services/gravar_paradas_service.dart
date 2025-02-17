@@ -39,7 +39,7 @@ class PontoParadaService {
       request.fields['latitude'] = latitude.toString();
       request.fields['longitude'] = longitude.toString();
       request.fields['latLongInterpolado'] = latLongInterpolado;
-      request.fields['abrigos'] = jsonEncode(abrigos); // ✅ Agora o backend recebe a lista de abrigos em JSON
+      request.fields['abrigos'] = jsonEncode(abrigos); 
 
       // 🔹 Adicionar imagens corretamente com o nome esperado pelo backend ('imagens')
       for (String imagePath in imagensPaths) {

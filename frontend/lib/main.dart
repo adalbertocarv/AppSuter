@@ -48,7 +48,7 @@ class PontoParada extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasData && snapshot.data != null) {
-            return  TelaInicio();
+            return  LoginScreen();
           } else {
             return  TelaInicio();
           }

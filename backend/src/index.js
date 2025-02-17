@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3001;
 const usuariosRoutes = require('./routes/usuarios.routes');
 const pontosRoutes = require('./routes/pontos.routes');
 const baciasRoutes = require('./routes/bacias.routes');
-const rasRoutes = require('./routes/ras.routes'); // Rotas de RAS
+const rasRoutes = require('./routes/ras.routes');
 const viasRoutes = require('./routes/vias.routes');  
 const paradasRoutes = require('./routes/paradas.routes');
 
@@ -28,9 +28,9 @@ app.use('/usuarios', usuariosRoutes); // Rotas de usuários
 app.use('/bacias', baciasRoutes); //  rota para bacias
 app.use('/ras', rasRoutes); //  rota para RAS
 app.use('/vias', viasRoutes); //   rota para vias
-app.use('/paradas', paradasRoutes); 
+app.use('/paradas', paradasRoutes);  // rota para paradas
 
-// Inicialização do servidor (somente fora de ambiente de teste)
+// Inicialização do servidor
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`Servidor rodando em http://localhost:${PORT}`);
