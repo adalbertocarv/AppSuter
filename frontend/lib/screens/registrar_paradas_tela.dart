@@ -14,7 +14,7 @@ import '../services/via_service.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 
 final EnderecoService _enderecoService =
-    EnderecoService(); // Serviço de busca de endereço
+EnderecoService(); // Serviço de busca de endereço
 String? _enderecoAtual;
 
 class RegistrarParadaTela extends StatefulWidget {
@@ -39,7 +39,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   //paradas da base de dados já registrado
   List<Marker> _markers = [];
   final ParadasService _paradasService =
-      ParadasService(); // Instância do serviço que busca GeoJSON da API
+  ParadasService(); // Instância do serviço que busca GeoJSON da API
   bool _mostrarMarcadores = false; // Inicialmente visível
 
   List<Polyline> _polylines = [];
@@ -96,8 +96,8 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
       _markers = paradas.map((parada) {
         final marker = Marker(
           point: parada.point,
-          width: 32,
-          height: 32,
+          width: 45,
+          height: 45,
           child: Transform.translate(
             offset: const Offset(0, -20),
             child: const Icon(
@@ -226,7 +226,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
 
       LatLng projectedPoint = pontoSobreLinha(point, start, end);
       double distancia =
-          const Distance().as(LengthUnit.Meter, point, projectedPoint);
+      const Distance().as(LengthUnit.Meter, point, projectedPoint);
       double segmentLength = const Distance().as(LengthUnit.Meter, start, end);
 
       if (distancia < distanciaMin) {
@@ -467,7 +467,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
               mapController: _mapController,
               options: MapOptions(
                 initialCenter:
-                    _userLocation ?? const LatLng(-15.7942, -47.8822),
+                _userLocation ?? const LatLng(-15.7942, -47.8822),
                 initialZoom: 17.0,
                 interactionOptions: const InteractionOptions(
                   flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
@@ -554,7 +554,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                     ],
                   ),
                 if (_pontoInterpolado != null)
-                  //ponto interpolado
+                //ponto interpolado
                   MarkerLayer(
                     markers: [
                       Marker(
@@ -602,21 +602,21 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
             child: ElevatedButton(
               onPressed: _viaConfirmada
                   ? () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => FormularioParadaTela(
-                            latLng: _pontoParadaConfirmado!,
-                            initialData: {'endereco': _enderecoAtual},
-                            latLongInterpolado:
-                                '${_pontoInterpolado!.latitude}, ${_pontoInterpolado!.longitude}',
-                          ),
-                        ),
-                      );
-                    }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FormularioParadaTela(
+                      latLng: _pontoParadaConfirmado!,
+                      initialData: {'endereco': _enderecoAtual},
+                      latLongInterpolado:
+                      '${_pontoInterpolado!.latitude}, ${_pontoInterpolado!.longitude}',
+                    ),
+                  ),
+                );
+              }
                   : (_pontoParadaConfirmado == null
-                      ? _confirmarPonto
-                      : _confirmarVia),
+                  ? _confirmarPonto
+                  : _confirmarVia),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -625,15 +625,15 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                 backgroundColor: _viaConfirmada
                     ? Colors.green
                     : (_pontoParadaConfirmado == null
-                        ? Colors.blue
-                        : Colors.orange),
+                    ? Colors.blue
+                    : Colors.orange),
               ),
               child: Text(
                 _viaConfirmada
                     ? 'Cadastrar Ponto de Parada'
                     : (_pontoParadaConfirmado == null
-                        ? 'Confirmar Ponto Parada'
-                        : 'Confirmar Via da Parada'),
+                    ? 'Confirmar Ponto Parada'
+                    : 'Confirmar Via da Parada'),
                 style: const TextStyle(color: Colors.white),
               ),
             ),
@@ -670,7 +670,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                 onPressed: () {
                   setState(() {
                     _mostrarMarcadores =
-                        !_mostrarMarcadores; // Alterna entre true/false
+                    !_mostrarMarcadores; // Alterna entre true/false
                   });
                 },
                 backgroundColor: _mostrarMarcadores ? Colors.blue : Colors.grey,

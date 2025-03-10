@@ -223,7 +223,7 @@ packages:
     source: hosted
     version: "1.4.0"
   flutter_map_marker_popup:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: flutter_map_marker_popup
       sha256: a7540538114b5d1627ab67b498273d66bc36090385412ae49ef215af4a2861c5

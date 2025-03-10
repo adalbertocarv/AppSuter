@@ -10,7 +10,7 @@ class PointProvider with ChangeNotifier {
   List<Map<String, dynamic>> get points => [..._points];
 
   // Carregar dados salvos localmente
-  Future<void> loadPoints() async {
+  Future<void> carregarPontos() async {
     final prefs = await SharedPreferences.getInstance();
     final storedPoints = prefs.getString('points');
     if (storedPoints != null) {
