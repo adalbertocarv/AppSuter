@@ -1,5 +1,4 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_map/flutter_map.dart';
@@ -15,9 +14,7 @@ import '../services/enderecoOSM_service.dart';
 import '../services/via_service.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 
-final EnderecoService _enderecoService =
-EnderecoService(); // Serviço de busca de endereço
-String? _enderecoAtual;
+
 
 class RegistrarParadaTela extends StatefulWidget {
   const RegistrarParadaTela({super.key});
@@ -26,23 +23,21 @@ class RegistrarParadaTela extends StatefulWidget {
   _RegistrarParadaTelaState createState() => _RegistrarParadaTelaState();
 }
 
-class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
+class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerProviderStateMixin {
   LatLng? _pontoSelecionado; // Armazena o ponto selecionado
   LatLng? _pontoParadaConfirmado; // Armazena o ponto de parada confirmado
   LatLng? _pontoInterpolado; // Ponto interpolado confirmado
   LatLng? _userLocation; // Armazena a localização do usuário
   bool _isLoading = true; // Indica se a localização está sendo carregada
-  //bool _baixando = false; // Controla se o download está ativo
   bool _viaConfirmada = false; // Indica se a via foi confirmada
   Timer? _timer; //consultar polylines a cada 30s
-
-  //double _downloadProgress = 0.0; // Progresso do download (0 a 1)
-
-  //paradas da base de dados já registrado
   List<Marker> _markers = [];
   final ParadasService _paradasService =
   ParadasService(); // Instância do serviço que busca GeoJSON da API
   bool _mostrarMarcadores = false; // Inicialmente visível
+  final EnderecoService _enderecoService =
+  EnderecoService(); // Serviço de busca de endereço
+  String? _enderecoAtual;
 
   List<Polyline> _polylines = [];
   List<LatLng> _consolidatedPoints = [];
@@ -54,13 +49,13 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   final _tileProvider = FMTCTileProvider(
     stores: const {'mapStore': BrowseStoreStrategy.readUpdateCreate},
   );
-  final _store = const FMTCStore('mapStore'); // Store de cache de tiles
 
-  // Assinaturas do stream
-  /*
-  StreamSubscription<DownloadProgress>? _downloadProgressSubscription;
-  StreamSubscription<TileEvent>? _tileEventSubscription;
-   */
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _mapController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -69,27 +64,47 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     _carregarParadas();
     _carregarViasComLocalizacaoAtual();
 
-    Future.delayed(Duration.zero, () {
-      Provider.of<PointProvider>(context, listen: false).addListener(() {
-        setState(() {
-          _pontoParadaConfirmado = null;
-          _pontoSelecionado = null;
-          _pontoInterpolado = null;
-          _viaConfirmada = false;
-        });
+    // Escuta mudanças no PointProvider para limpar marcadores
+    Provider.of<PointProvider>(context, listen: false).addListener(() {
+      setState(() {
+        _pontoSelecionado = null;
+        _pontoParadaConfirmado = null;
+        _pontoInterpolado = null;
+        _viaConfirmada = false;
       });
     });
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel(); // Cancela o timer corretamente
-    _mapController.dispose(); // Descarta o controlador do mapa corretamente
+// Método para obter a localização do usuário
+  Future<void> _localizacaoUsuario() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return;
+      }
 
-    // Remove listener do Provider
-    Provider.of<PointProvider>(context, listen: false).removeListener(() {});
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever) {
+        return;
+      }
 
-    super.dispose();
+      Position position = await Geolocator.getCurrentPosition();
+      if (mounted) {
+        setState(() {
+          _userLocation = LatLng(position.latitude, position.longitude);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _carregarParadas() async {
@@ -116,58 +131,25 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     }
   }
 
-  /// Função para limpar todos os pontos
-  void _limparPontos() {
-    if (mounted) {
-      setState(() {
-        _pontoSelecionado = null;
-        _pontoParadaConfirmado = null;
-        _pontoInterpolado = null;
-        _viaConfirmada = false;
-        _enderecoAtual = null;
-      });
-
-      scaffoldMessengerKey.currentState!.showSnackBar(
-        const SnackBar(
-          content: Text('Todos os pontos foram limpos. Selecione novamente.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    }
-  }
-
-
-
   Future<void> _carregarViasComLocalizacaoAtual() async {
     try {
-      // Obtém a localização atual do usuário
       Position posicaoAtual = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-
+        desiredAccuracy: LocationAccuracy.high,
+      );
       LatLng userLocation = LatLng(posicaoAtual.latitude, posicaoAtual.longitude);
-
-      // Carrega apenas vias dentro do raio de 50m
       final vias = await _viaService.buscarViasProximas(userLocation);
+      if (!mounted) return;
       setState(() {
         _polylines = vias;
         _consolidatedPoints = _consolidarPontos(_polylines);
       });
     } catch (e) {
-      print('Erro ao carregar vias próximas: $e');
+      if (mounted) {
+        print('Erro ao carregar vias próximas: $e');
+      }
     }
   }
 
-
-  // Método para iniciar a atualização automática
-  void _iniciarAtualizacaoAutomatica() {
-    _timer = Timer.periodic(const Duration(seconds: 30), (timer) async {
-      await _carregarViasComLocalizacaoAtual();
-      if (mounted) {
-        setState(() {}); // Garante que o widget ainda está montado antes de atualizar
-      }
-    });
-  }
-//---------INTERPOLAÇÃO DE LINHA
   Future<void> _confirmarPonto() async {
     if (_pontoSelecionado == null) {
       scaffoldMessengerKey.currentState!.showSnackBar(
@@ -218,6 +200,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     }
   }
 
+//---------INTERPOLAÇÃO DE LINHA
   List<LatLng> _consolidarPontos(List<Polyline> polylines) {
     List<LatLng> allPoints = [];
     for (var polyline in polylines) {
@@ -313,95 +296,40 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     return LatLng(projectedY, projectedX);
   }
 //---------FIM DA INTERPOLAÇÃO
-
-/*  Future<void> _baixarTilesBrasilia() async {
-    setState(() {
-      _baixando = true;
-    });
-    //área de Brasília usando um retângulo aproximado
-    final region = RectangleRegion(
-      LatLngBounds(
-        const LatLng(-15.95, -48.05), // Sudoeste
-        const LatLng(-15.75, -47.85), // Nordeste
-      ),
-    );
-
-    try {
-      // Convertendo para uma região de download com zoom e parâmetros do servidor de tiles (camada do mapa)
-      final downloadableRegion = region.toDownloadable(
-        minZoom: 10,
-        maxZoom: 19,
-        options: TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.ponto.parada.frontend',
+  void _confirmarVia() {
+    if (_pontoSelecionado != null) {
+      LatLng pontoInterpolado = acharPontoInterpolado(_pontoSelecionado!);
+      setState(() {
+        _pontoInterpolado = pontoInterpolado;
+        _viaConfirmada = true;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selecione um ponto de via antes de confirmar.'),
+          backgroundColor: Colors.red,
         ),
       );
-
-      final downloadResult = await _store.download.startForeground(
-        region: downloadableRegion,
-      );
-
-      // Escutando o progresso do download
-      _downloadProgressSubscription = downloadResult.downloadProgress.listen((progress) {
-        if (mounted) {
-          setState(() {
-            _downloadProgress = progress.percentageProgress / 100.0;
-          });
-        }
-
-        if (progress.percentageProgress == 100 && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Download de tiles concluído!')),
-          );
-        }
-      });
-
-
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao baixar a camada do mapa: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _baixando = false;
-        });
-      }
     }
   }
-*/
 
-  // Método para obter a localização do usuário
-  Future<void> _localizacaoUsuario() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        return;
-      }
+  // Função para limpar todos os pontos
+  void _limparPontos() {
+    if (mounted) {
+      setState(() {
+        _pontoSelecionado = null;
+        _pontoParadaConfirmado = null;
+        _pontoInterpolado = null;
+        _viaConfirmada = false;
+        _enderecoAtual = null;
+      });
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.deniedForever) {
-        return;
-      }
-
-      Position position = await Geolocator.getCurrentPosition();
-      if (mounted) {
-        setState(() {
-          _userLocation = LatLng(position.latitude, position.longitude);
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      scaffoldMessengerKey.currentState!.showSnackBar(
+        const SnackBar(
+          content: Text('Todos os pontos foram limpos. Selecione novamente.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
   }
 
@@ -443,23 +371,6 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     }
   }
 
-  void _confirmarVia() {
-    if (_pontoSelecionado != null) {
-      LatLng pontoInterpolado = acharPontoInterpolado(_pontoSelecionado!);
-      setState(() {
-        _pontoInterpolado = pontoInterpolado;
-        _viaConfirmada = true;
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecione um ponto de via antes de confirmar.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -471,12 +382,12 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
             FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                initialCenter:
-                _userLocation ?? const LatLng(-15.7942, -47.8822),
-                initialZoom: 17.0,
-                interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                ),
+                  initialCenter:
+                  _userLocation ?? const LatLng(-15.7942, -47.8822),
+                  initialZoom: 17.0,
+                  interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                  ),
                   onMapEvent: (event) {
                     LatLng novoPonto = _mapController.camera.center;
                     if (_pontoSelecionado == null ||
@@ -587,14 +498,6 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                       ),
                     ],
                   ),
-                /*if (_baixando)
-                  Positioned(
-                    bottom: 20,
-                    left: 20,
-                    right: 20,
-                    child: ProgressoDownloadWidget(progresso: _downloadProgress),
-                  ),
-                 */
               ],
             ),
           if (!_isLoading)
