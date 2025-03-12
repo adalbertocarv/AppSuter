@@ -13,25 +13,7 @@ class _MapaConsultaScreenState extends State<MapaConsultaScreen> {
   final EnderecoService _enderecoService = EnderecoService();  // Instância do serviço
   String? _enderecoAtual;
 
-/*  Future<void> _buscarEndereco(LatLng coordenadas) async {
-    try {
-      final endereco = await _enderecoService.buscarEndereco(
-          coordenadas.latitude, coordenadas.longitude);
 
-      setState(() {
-        _enderecoAtual = endereco.displayName;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Endereço: ${endereco.displayName}')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao buscar endereço: $e')),
-      );
-    }
-  }
-*/
   @override
   Widget build(BuildContext context) {
     return Scaffold(

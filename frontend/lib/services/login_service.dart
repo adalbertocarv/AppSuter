@@ -8,7 +8,7 @@ import 'package:jwt_decoder/jwt_decoder.dart';
 class LoginService {
   // Login do usuário
   static Future<String?> login(String email, String senha) async {
-    final url = Uri.parse('${caminhoBackend.baseUrl}/usuarios/login');
+    final url = Uri.parse('http://100.87.130.42:3001/usuarios/login');
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},

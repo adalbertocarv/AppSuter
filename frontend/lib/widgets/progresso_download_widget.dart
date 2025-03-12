@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ProgressoDownloadWidget extends StatelessWidget {
-  final double progresso; // De 0.0 a 1.0
+  final double progresso; // De 0.0 a 100.0
 
   const ProgressoDownloadWidget({Key? key, required this.progresso}) : super(key: key);
 

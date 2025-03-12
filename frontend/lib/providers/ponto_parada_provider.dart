@@ -9,7 +9,7 @@ class PointProvider with ChangeNotifier {
 
   List<Map<String, dynamic>> get points => [..._points];
 
-  // Carregar dados salvos localmente
+  /// Carregar dados salvos localmente
   Future<void> carregarPontos() async {
     final prefs = await SharedPreferences.getInstance();
     final storedPoints = prefs.getString('points');
@@ -19,77 +19,74 @@ class PointProvider with ChangeNotifier {
     }
   }
 
-  // Salvar pontos localmente
+  /// Salvar pontos localmente
   Future<void> _savePoints() async {
     final prefs = await SharedPreferences.getInstance();
     prefs.setString('points', jsonEncode(_points));
   }
 
-  // Adicionar um novo ponto localmente e fazer POST no backend
+  /// Adicionar um novo ponto localmente e fazer POST no backend
   Future<void> addPoint({
+    required int idUsuario,
     required String endereco,
-    required bool haAbrigo,
-    required List<Map<String, dynamic>> abrigos, // Agora aceita múltiplos abrigos
-    required bool linhasTransporte,
-    required double longitude,
     required double latitude,
-    required List<String> imagensPaths,
-    required String latLongInterpolado,
+    required double longitude,
+    required bool linhaEscolares,
+    required bool linhaStpc,
+    int? idTipoAbrigo,
+    required double latitudeInterpolado,
+    required double longitudeInterpolado,
+    required String dataVisita,
+    required bool pisoTatil,
+    required bool rampa,
+    required bool patologia,
+    required List<String> imgBlobPaths, // ✅ Adicionado aqui
+    required List<String> imagensPatologiaPaths, // ✅ Adicionado aqui
+    required List<Map<String, dynamic>> abrigos,
   }) async {
     final newPoint = {
+      "idUsuario": idUsuario,
       "endereco": endereco,
-      "haAbrigo": haAbrigo,
-      "abrigos": abrigos, // Lista de abrigos
-      "linhasTransporte": linhasTransporte,
-      "longitude": longitude,
       "latitude": latitude,
-      "imagensPaths": imagensPaths,
-      "latLongInterpolado": latLongInterpolado,
+      "longitude": longitude,
+      "LinhaEscolares": linhaEscolares,
+      "LinhaStpc": linhaStpc,
+      "idTipoAbrigo": idTipoAbrigo,
+      "latitudeInterpolado": latitudeInterpolado,
+      "longitudeInterpolado": longitudeInterpolado,
+      "DataVisita": dataVisita,
+      "PisoTatil": pisoTatil,
+      "Rampa": rampa,
+      "Patologia": patologia,
+      "imgBlobPaths": imgBlobPaths, // ✅ Adicionado
+      "imagensPatologiaPaths": imagensPatologiaPaths, // ✅ Adicionado
+      "abrigos": abrigos,
     };
 
-    // Adiciona localmente
     _points.add(newPoint);
     notifyListeners();
     await _savePoints();
-
-    // Fazer POST no backend
-    try {
-      final url = Uri.parse('${caminhoBackend.baseUrl}/pontos');
-      final request = http.MultipartRequest('POST', url)
-        ..fields['endereco'] = endereco
-        ..fields['haAbrigo'] = haAbrigo.toString()
-        ..fields['linhasTransporte'] = linhasTransporte.toString()
-        ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude})
-        ..fields['latLongInterpolado'] = latLongInterpolado
-        ..fields['abrigos'] = jsonEncode(abrigos); // Enviar lista de abrigos
-
-      // Adiciona imagens ao request
-      for (String imagePath in imagensPaths) {
-        request.files.add(await http.MultipartFile.fromPath('imagens', imagePath));
-      }
-
-      final response = await request.send();
-      if (response.statusCode == 201) {
-        print('Ponto criado com sucesso!');
-      } else {
-        print('Erro ao criar o ponto: ${response.statusCode}');
-      }
-    } catch (error) {
-      print('Erro na criação do ponto: $error');
-    }
   }
 
-
-  // Atualizar um ponto existente
+  /// Atualizar um ponto existente
   Future<void> updatePoint(
       int index, {
+        required int idUsuario,
         required String endereco,
-        required bool haAbrigo,
-        required List<Map<String, dynamic>> abrigos, // Lista de abrigos
-        required bool linhasTransporte,
-        required double longitude,
         required double latitude,
-        required List<String> imagensPaths,
+        required double longitude,
+        required bool linhaEscolares,
+        required bool linhaStpc,
+        int? idTipoAbrigo,
+        required double latitudeInterpolado,
+        required double longitudeInterpolado,
+        required String dataVisita,
+        required bool pisoTatil,
+        required bool rampa,
+        required bool patologia,
+        required List<String> imgBlobPaths,
+        required List<String> imagensPatologiaPaths,
+        required List<Map<String, dynamic>> abrigos,
       }) async {
     if (index < 0 || index >= _points.length) {
       print('Índice inválido');
@@ -97,53 +94,37 @@ class PointProvider with ChangeNotifier {
     }
 
     final updatedPoint = {
+      "idUsuario": idUsuario,
       "endereco": endereco,
-      "haAbrigo": haAbrigo,
-      "abrigos": abrigos, // Mantém os abrigos
-      "linhasTransporte": linhasTransporte,
-      "longitude": longitude,
       "latitude": latitude,
-      "imagensPaths": imagensPaths,
+      "longitude": longitude,
+      "LinhaEscolares": linhaEscolares,
+      "LinhaStpc": linhaStpc,
+      "idTipoAbrigo": idTipoAbrigo,
+      "latitudeInterpolado": latitudeInterpolado,
+      "longitudeInterpolado": longitudeInterpolado,
+      "DataVisita": dataVisita,
+      "PisoTatil": pisoTatil,
+      "Rampa": rampa,
+      "Patologia": patologia,
+      "imgBlobPaths": imgBlobPaths,
+      "imagensPatologiaPaths": imagensPatologiaPaths,
+      "abrigos": abrigos,
     };
 
     _points[index] = updatedPoint;
     notifyListeners();
     await _savePoints();
-
-    // Fazer PUT no backend
-    try {
-      final url = Uri.parse('${caminhoBackend.baseUrl}/pontos/${_points[index]['id']}');
-      final request = http.MultipartRequest('PUT', url)
-        ..fields['endereco'] = endereco
-        ..fields['haAbrigo'] = haAbrigo.toString()
-        ..fields['linhasTransporte'] = linhasTransporte.toString()
-        ..fields['geom'] = jsonEncode({"lon": longitude, "lat": latitude})
-        ..fields['abrigos'] = jsonEncode(abrigos);
-
-      for (String imagePath in imagensPaths) {
-        request.files.add(await http.MultipartFile.fromPath('imagens', imagePath));
-      }
-
-      final response = await request.send();
-      if (response.statusCode == 200) {
-        print('Ponto atualizado com sucesso!');
-      } else {
-        print('Erro ao atualizar o ponto: ${response.statusCode}');
-      }
-    } catch (error) {
-      print('Erro na atualização do ponto: $error');
-    }
   }
 
-
-  // Remover um ponto por índice
+  /// Remover um ponto por índice
   void removePoint(int index) {
     _points.removeAt(index);
     notifyListeners();
-    _savePoints(); // Atualiza os dados persistidos
+    _savePoints();
   }
 
-  // Limpar todos os pontos (opcional, usado no logout ou ao enviar para o banco)
+  /// Limpar todos os pontos (opcional, usado no logout ou ao enviar para o banco)
   Future<void> clearPoints() async {
     _points = [];
     notifyListeners();

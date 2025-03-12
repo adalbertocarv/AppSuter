@@ -46,6 +46,7 @@ dependencies:
   path_provider: ^2.1.5
   flutter_map_marker_cluster: ^1.4.0
   flutter_map_marker_popup: ^7.0.0
+  proj4dart: ^2.1.0
   
 dev_dependencies:
   flutter_test:
@@ -80,6 +81,8 @@ flutter:
     - assets/images/imagessemob.png
     - assets/icon.png
     - assets/images/paradaComFundo.png
+    - assets/tab_rede_vias.geojson
+    - assets/images/user_location.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

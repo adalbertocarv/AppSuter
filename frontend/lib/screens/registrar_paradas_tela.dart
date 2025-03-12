@@ -1,14 +1,16 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
+import '../main.dart';
 import '../providers/ponto_parada_provider.dart';
 import '../services/paradas_service.dart';
-import 'formulario_parada_tela.dart';
+import 'carregamento_tela.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
-//import '../widgets/progresso_download_widget.dart';
 import '../services/enderecoOSM_service.dart';
 import '../services/via_service.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
@@ -45,7 +47,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   List<Polyline> _polylines = [];
   List<LatLng> _consolidatedPoints = [];
 
-  final ViaService _viaService = ViaService();
+  final GeoJsonService _viaService = GeoJsonService();
 
   final MapController _mapController = MapController(); // Controlador do mapa
   // Adiciona o tile provider com cache
@@ -64,29 +66,29 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
   void initState() {
     super.initState();
     _localizacaoUsuario();
-    //_baixarTilesBrasilia();
     _carregarParadas();
     _carregarViasComLocalizacaoAtual();
 
-    // Escuta mudanças no PointProvider para limpar marcadores
-    Provider.of<PointProvider>(context, listen: false).addListener(() {
-      setState(() {
-        _pontoSelecionado = null;
-        _pontoParadaConfirmado = null;
-        _pontoInterpolado = null;
-        _viaConfirmada = false;
+    Future.delayed(Duration.zero, () {
+      Provider.of<PointProvider>(context, listen: false).addListener(() {
+        setState(() {
+          _pontoParadaConfirmado = null;
+          _pontoSelecionado = null;
+          _pontoInterpolado = null;
+          _viaConfirmada = false;
+        });
       });
     });
   }
 
   @override
   void dispose() {
-    // Cancela os streams ao desmontar o widget
-    //_downloadProgressSubscription?.cancel();
-    //_tileEventSubscription?.cancel();
-    _iniciarAtualizacaoAutomatica();
-    _mapController.dispose();
-    _timer?.cancel(); // Cancela o timer ao sair da tela
+    _timer?.cancel(); // Cancela o timer corretamente
+    _mapController.dispose(); // Descarta o controlador do mapa corretamente
+
+    // Remove listener do Provider
+    Provider.of<PointProvider>(context, listen: false).removeListener(() {});
+
     super.dispose();
   }
 
@@ -116,90 +118,100 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
 
   /// Função para limpar todos os pontos
   void _limparPontos() {
-    setState(() {
-      _pontoSelecionado = null;
-      _pontoParadaConfirmado = null;
-      _pontoInterpolado = null;
-      _viaConfirmada = false;
-      _enderecoAtual = null;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Todos os pontos foram limpos. Selecione novamente.'),
-        backgroundColor: Colors.orange,
-      ),
-    );
-  }
-
-  Future<void> _carregarViasComLocalizacaoAtual() async {
-    try {
-      Position posicaoAtual = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-
-      double latitude = posicaoAtual.latitude;
-      double longitude = posicaoAtual.longitude;
-
-      final vias = await _viaService.buscarViasProximas(latitude, longitude);
+    if (mounted) {
       setState(() {
-        _polylines = vias.polylines;
-        _consolidatedPoints = _consolidarPontos(_polylines);
+        _pontoSelecionado = null;
+        _pontoParadaConfirmado = null;
+        _pontoInterpolado = null;
+        _viaConfirmada = false;
+        _enderecoAtual = null;
       });
-    } catch (e) {
-      print('Erro ao carregar vias: $e');
+
+      scaffoldMessengerKey.currentState!.showSnackBar(
+        const SnackBar(
+          content: Text('Todos os pontos foram limpos. Selecione novamente.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
   }
 
-  // Método para iniciar a atualização automática
-  void _iniciarAtualizacaoAutomatica() {
-    _timer = Timer.periodic(Duration(seconds: 30), (timer) {
-      _carregarViasComLocalizacaoAtual();
-    });
+
+
+  Future<void> _carregarViasComLocalizacaoAtual() async {
+    try {
+      // Obtém a localização atual do usuário
+      Position posicaoAtual = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+
+      LatLng userLocation = LatLng(posicaoAtual.latitude, posicaoAtual.longitude);
+
+      // Carrega apenas vias dentro do raio de 50m
+      final vias = await _viaService.buscarViasProximas(userLocation);
+      setState(() {
+        _polylines = vias;
+        _consolidatedPoints = _consolidarPontos(_polylines);
+      });
+    } catch (e) {
+      print('Erro ao carregar vias próximas: $e');
+    }
   }
 
-  Future<void> _confirmarPonto() async {
-    if (_pontoSelecionado != null) {
-      try {
-        // Mostra feedback visual enquanto busca o endereço
-        /*ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Buscando endereço...'),
-            backgroundColor: Colors.blueAccent,
-          ),
-        );
-         */
 
-        // Chama o serviço para buscar o endereço
-        final endereco = await _enderecoService.buscarEndereco(
-          _pontoSelecionado!.latitude,
-          _pontoSelecionado!.longitude,
-        );
-
-        // Atualiza o estado com os dados recebidos
-        setState(() {
-          _pontoParadaConfirmado = _pontoSelecionado;
-          _enderecoAtual = endereco
-              .formattedAddress; // Usa o endereço formatado corretamente
-          _viaConfirmada = false; // Reinicia o estado da via
-        });
-
-        // Mostra mensagem de sucesso
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ponto confirmado com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } catch (e) {
-        // Mostra o erro no SnackBar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao buscar o endereço: $e')),
-        );
+  // Método para iniciar a atualização automática
+  void _iniciarAtualizacaoAutomatica() {
+    _timer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+      await _carregarViasComLocalizacaoAtual();
+      if (mounted) {
+        setState(() {}); // Garante que o widget ainda está montado antes de atualizar
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+    });
+  }
+//---------INTERPOLAÇÃO DE LINHA
+  Future<void> _confirmarPonto() async {
+    if (_pontoSelecionado == null) {
+      scaffoldMessengerKey.currentState!.showSnackBar(
         const SnackBar(
           content: Text('Nenhum ponto selecionado para confirmar.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final LatLng ponto = _pontoSelecionado!;
+
+    if (mounted) {
+      setState(() {
+        _pontoParadaConfirmado = ponto;
+        _viaConfirmada = false;
+      });
+    }
+
+    try {
+      final endereco = await _enderecoService.buscarEndereco(
+        ponto.latitude,
+        ponto.longitude,
+      );
+
+      if (endereco != null && endereco.formattedAddress.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _enderecoAtual = endereco.formattedAddress;
+          });
+        }
+      } else {
+        scaffoldMessengerKey.currentState!.showSnackBar(
+          const SnackBar(
+            content: Text('Endereço não encontrado.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      scaffoldMessengerKey.currentState!.showSnackBar(
+        SnackBar(
+          content: Text('Erro ao buscar o endereço: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -300,6 +312,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
 
     return LatLng(projectedY, projectedX);
   }
+//---------FIM DA INTERPOLAÇÃO
 
 /*  Future<void> _baixarTilesBrasilia() async {
     setState(() {
@@ -359,77 +372,69 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
     }
   }
 */
+
   // Método para obter a localização do usuário
   Future<void> _localizacaoUsuario() async {
     try {
-      // Verifica se os serviços de localização estão habilitados
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Por favor, habilite a localização para continuar.'),
-            backgroundColor: Colors.red,
-          ),
-        );
         return;
       }
 
-      // Verifica as permissões de localização
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        // Solicita permissão
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Permissão de localização negada.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
-        }
       }
-
-      // Se a permissão for negada permanentemente, redirecione para as configurações
       if (permission == LocationPermission.deniedForever) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Permissão de localização negada permanentemente. Habilite nas configurações.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        // Abre as configurações do app para o usuário habilitar manualmente
-        await Geolocator.openAppSettings();
         return;
       }
 
-      // Obtém a localização atual
       Position position = await Geolocator.getCurrentPosition();
-      setState(() {
-        _userLocation = LatLng(position.latitude, position.longitude);
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _userLocation = LatLng(position.latitude, position.longitude);
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao obter localização: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  // Método para centralizar o mapa na localização do usuário
+  // Método para centralizar o mapa na localização do usuário (com animação)
   void _centralizarLocalizacaoUsuario() {
     if (_userLocation != null) {
-      _mapController.move(
-          _userLocation!, 17.0); // Move o mapa para a localização do usuário
+      LatLng startPosition = _mapController.camera.center;
+      LatLng targetPosition = _userLocation!;
+      double startZoom = _mapController.camera.zoom;
+      double targetZoom = 17.0;
+      int duration = 350; // Tempo total da animação (em milissegundos)
+      int steps = 30; // Número de frames na animação
+      int interval = (duration / steps).round(); // Tempo entre cada frame
+
+      int currentStep = 0;
+      Timer.periodic(Duration(milliseconds: interval), (timer) {
+        currentStep++;
+
+        // Interpola latitude e longitude
+        double lat = lerpDouble(startPosition.latitude, targetPosition.latitude, currentStep / steps)!;
+        double lng = lerpDouble(startPosition.longitude, targetPosition.longitude, currentStep / steps)!;
+
+        // Interpola o zoom
+        double zoom = lerpDouble(startZoom, targetZoom, currentStep / steps)!;
+
+        _mapController.move(LatLng(lat, lng), zoom);
+
+        if (currentStep >= steps) {
+          timer.cancel(); // Finaliza a animação
+        }
+      });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessengerKey.currentState!.showSnackBar(
         const SnackBar(
           content: Text('Localização do usuário não disponível.'),
           backgroundColor: Colors.red,
@@ -472,13 +477,16 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                 interactionOptions: const InteractionOptions(
                   flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                 ),
-                onMapEvent: (event) {
-                  if (mounted) {
-                    setState(() {
-                      _pontoSelecionado = _mapController.camera.center;
-                    });
+                  onMapEvent: (event) {
+                    LatLng novoPonto = _mapController.camera.center;
+                    if (_pontoSelecionado == null ||
+                        _pontoSelecionado!.latitude != novoPonto.latitude ||
+                        _pontoSelecionado!.longitude != novoPonto.longitude) {
+                      setState(() {
+                        _pontoSelecionado = novoPonto;
+                      });
+                    }
                   }
-                },
               ),
               children: [
                 TileLayer(
@@ -524,14 +532,21 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
                 if (_userLocation != null)
                   MarkerLayer(
                     markers: [
-                      Marker(
-                        point: _userLocation!,
-                        child: const Icon(
-                          Icons.my_location,
-                          color: Colors.blue,
-                          size: 30,
+                      if (_userLocation != null)
+                        Marker(
+                          point: _userLocation!,
+                          width: 50,
+                          height: 50,
+                          child: Transform.translate(
+                            offset: const Offset(0, -22),
+                            child: Image.asset(
+                              'assets/images/user_location.png',
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 PolylineLayer(polylines: _polylines),
@@ -602,14 +617,22 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
             child: ElevatedButton(
               onPressed: _viaConfirmada
                   ? () {
+                if (_pontoParadaConfirmado == null || _pontoInterpolado == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Dados incompletos para cadastro.')),
+                  );
+                  return;
+                }
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => FormularioParadaTela(
-                      latLng: _pontoParadaConfirmado!,
-                      initialData: {'endereco': _enderecoAtual},
-                      latLongInterpolado:
-                      '${_pontoInterpolado!.latitude}, ${_pontoInterpolado!.longitude}',
+                    builder: (context) => CarregamentoTela(
+                      pontoParada: _pontoParadaConfirmado!,
+                      enderecoFuture: _enderecoService.buscarEndereco(
+                        _pontoParadaConfirmado!.latitude,
+                        _pontoParadaConfirmado!.longitude,
+                      ).then((endereco) => endereco.formattedAddress),
+                      pontoInterpolado: _pontoInterpolado!,
                     ),
                   ),
                 );
@@ -646,6 +669,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
               top: 16,
               left: 16,
               child: FloatingActionButton(
+                heroTag: null, // Desativa a animação Hero para evitar conflito
                 onPressed: _limparPontos,
                 backgroundColor: Colors.red,
                 child: const Icon(Icons.delete),
@@ -657,6 +681,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> {
             top: 16, // Distância do topo
             right: 16, // Distância da direita
             child: FloatingActionButton(
+              heroTag: null, // Desativa a animação Hero para evitar conflito
               onPressed: _centralizarLocalizacaoUsuario,
               child: const Icon(Icons.my_location),
               tooltip: 'Minha localização',

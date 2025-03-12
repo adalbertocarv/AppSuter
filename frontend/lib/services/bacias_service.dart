@@ -6,7 +6,7 @@ class BaciaService {
   List<dynamic> features = []; // Cache para features
 
   Future<List<dynamic>> buscarBacias() async {
-    final response = await http.get(Uri.parse('${caminhoBackend.baseUrl}/bacias'));
+    final response = await http.get(Uri.parse('${caminhoBackend.baseUrl}/bacias/'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
