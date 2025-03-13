@@ -7,10 +7,6 @@ import 'screens/tela_inicio.dart';
 import 'services/login_service.dart';
 import 'package:provider/provider.dart';
 
-
-final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
-GlobalKey<ScaffoldMessengerState>();
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -39,7 +35,6 @@ class PontoParada extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      scaffoldMessengerKey: scaffoldMessengerKey, // chave global
       debugShowCheckedModeBanner: false, // Desativa o banner de debug
       title: 'App Suter',
       theme: ThemeData(
@@ -56,7 +51,7 @@ class PontoParada extends StatelessWidget {
           } else if (snapshot.hasData && snapshot.data != null) {
             return  const TelaInicio();
           } else {
-            return  const TelaInicio(); //login
+            return  const LoginScreen(); //login
           }
         },
       ),

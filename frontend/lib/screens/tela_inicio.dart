@@ -96,11 +96,11 @@ class _HomeScreenState extends State<TelaInicio> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.map),
-            label: 'Paradas',
+            label: 'Cadastrar Parada',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle),
-            label: 'Registro',
+            label: 'Registros',
           ),
         ],
       ),

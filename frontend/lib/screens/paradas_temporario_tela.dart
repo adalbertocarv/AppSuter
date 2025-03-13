@@ -111,11 +111,18 @@ class _ParadasTemporarioTelaState extends State<ParadasTemporarioTela> {
     return
       Scaffold(
         appBar: AppBar(
+          centerTitle: true,
+          backgroundColor: Colors.blue,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new),
             onPressed: () => Navigator.of(context).pop(),
           ),
+          titleTextStyle: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+          ),
           title: const Text('Paradas Temporárias'),
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: Column(
           children: [

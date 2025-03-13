@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import '../models/baseUrl_model.dart';
 
 class PointProvider with ChangeNotifier {
   List<Map<String, dynamic>> _points = [];
@@ -40,8 +38,8 @@ class PointProvider with ChangeNotifier {
     required bool pisoTatil,
     required bool rampa,
     required bool patologia,
-    required List<String> imgBlobPaths, // ✅ Adicionado aqui
-    required List<String> imagensPatologiaPaths, // ✅ Adicionado aqui
+    required List<String> imgBlobPaths,
+    required List<String> imagensPatologiaPaths,
     required List<Map<String, dynamic>> abrigos,
   }) async {
     final newPoint = {
@@ -58,8 +56,8 @@ class PointProvider with ChangeNotifier {
       "PisoTatil": pisoTatil,
       "Rampa": rampa,
       "Patologia": patologia,
-      "imgBlobPaths": imgBlobPaths, // ✅ Adicionado
-      "imagensPatologiaPaths": imagensPatologiaPaths, // ✅ Adicionado
+      "imgBlobPaths": imgBlobPaths,
+      "imagensPatologiaPaths": imagensPatologiaPaths,
       "abrigos": abrigos,
     };
 

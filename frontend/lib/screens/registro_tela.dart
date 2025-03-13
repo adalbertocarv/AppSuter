@@ -152,14 +152,22 @@ class _RegistroTelaState extends State<RegistroTela> {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (ctx) => FormularioParadaTela(
-                                latLng: LatLng(point['latitude'], point['longitude']),
+                                latLng: LatLng(
+                                  point['latitude'] is double
+                                      ? point['latitude']
+                                      : double.tryParse(point['latitude'].toString()) ?? 0.0,
+                                  point['longitude'] is double
+                                      ? point['longitude']
+                                      : double.tryParse(point['longitude'].toString()) ?? 0.0,
+                                ),
                                 initialData: point,
                                 latLongInterpolado: point['latLongInterpolado'] ?? '',
-                                index: index, // Passa o índice do ponto atual
+                                index: index,
                               ),
                             ),
                           );
-                        }),
+                        }
+                    ),
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () {

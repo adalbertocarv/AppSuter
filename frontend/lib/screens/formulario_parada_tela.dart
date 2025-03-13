@@ -51,7 +51,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   @override
   void initState() {
     super.initState();
-    _carregarDadosUsuario();
+    _idUsuario = 4; // Sempre atribui o ID 4 para testes
     _addressController.text =
         widget.initialData?['endereco'] ?? 'Carregando endereço...';
 
@@ -67,15 +67,15 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
         _abrigos =
             List<Map<String, dynamic>>.from(widget.initialData?['abrigos'])
                 .map((abrigo) {
-          return {
-            "idTipoAbrigo": abrigo["idTipoAbrigo"],
-            "temPatologia": abrigo["temPatologia"] ?? false,
-            "imgBlobPaths": List<String>.from(
-                abrigo["imgBlobPaths"] ?? []), // ✅ Conversão correta
-            "imagensPatologiaPaths": List<String>.from(
-                abrigo["imagensPatologiaPaths"] ?? []), // ✅ Conversão correta
-          };
-        }).toList();
+              return {
+                "idTipoAbrigo": abrigo["idTipoAbrigo"],
+                "temPatologia": abrigo["temPatologia"] ?? false,
+                "imgBlobPaths": List<String>.from(
+                    abrigo["imgBlobPaths"] ?? []), // ✅ Conversão correta
+                "imagensPatologiaPaths": List<String>.from(
+                    abrigo["imagensPatologiaPaths"] ?? []), // ✅ Conversão correta
+              };
+            }).toList();
       }
     }
   }
@@ -248,13 +248,6 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Coordenadas Selecionadas: ${widget.latLng.latitude}, ${widget.latLng.longitude}',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-
               // CAMPO ENDEREÇO
               TextField(
                   controller: _addressController,
@@ -518,14 +511,6 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                   ),
                 ),
               ],
-
-              const SizedBox(height: 10),
-              Text(
-                'Ponto interpolado com rede de vias: ${widget.latLongInterpolado}',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
 
               const SizedBox(height: 20),
 

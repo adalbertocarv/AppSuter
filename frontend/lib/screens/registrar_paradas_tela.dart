@@ -50,10 +50,12 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
     stores: const {'mapStore': BrowseStoreStrategy.readUpdateCreate},
   );
 
+
   @override
   void dispose() {
-    _timer?.cancel();
+    _carregarViasComLocalizacaoAtual();
     _mapController.dispose();
+    _timer?.cancel(); // Cancela o timer ao sair da tela
     super.dispose();
   }
 
@@ -152,7 +154,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
 
   Future<void> _confirmarPonto() async {
     if (_pontoSelecionado == null) {
-      scaffoldMessengerKey.currentState!.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Nenhum ponto selecionado para confirmar.'),
           backgroundColor: Colors.red,
@@ -183,7 +185,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
           });
         }
       } else {
-        scaffoldMessengerKey.currentState!.showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Endereço não encontrado.'),
             backgroundColor: Colors.orange,
@@ -191,9 +193,9 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
         );
       }
     } catch (e) {
-      scaffoldMessengerKey.currentState!.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao buscar o endereço: $e'),
+          content: Text('Erro ao buscar o endereço'),
           backgroundColor: Colors.red,
         ),
       );
@@ -324,7 +326,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
         _enderecoAtual = null;
       });
 
-      scaffoldMessengerKey.currentState!.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Todos os pontos foram limpos. Selecione novamente.'),
           backgroundColor: Colors.orange,
@@ -362,7 +364,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
         }
       });
     } else {
-      scaffoldMessengerKey.currentState!.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Localização do usuário não disponível.'),
           backgroundColor: Colors.red,
