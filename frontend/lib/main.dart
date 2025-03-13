@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:frontend/providers/ponto_parada_provider.dart';
-import 'package:frontend/widgets/consulta_endereco_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_tela.dart';
 import 'screens/tela_inicio.dart';
@@ -15,7 +14,7 @@ Future<void> main() async {
   await FMTCObjectBoxBackend().initialise();
 
   // Criação de um store de tiles chamado 'mapStore'
-  await FMTCStore('mapStore').manage.create();
+  await const FMTCStore('mapStore').manage.create();
 
   // Limpar o token ao iniciar o app
   final prefs = await SharedPreferences.getInstance();
@@ -23,21 +22,23 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => PointProvider()..loadPoints()), // Garante que as paradas sejam carregadas
+        ChangeNotifierProvider(create: (_) => PointProvider()..carregarPontos()), // Garante que as paradas sejam carregadas
       ],
-      child: PontoParada(),
+      child: const PontoParada(),
     ),
   );
 }
 
 class PontoParada extends StatelessWidget {
+  const PontoParada({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false, // Desativa o banner de debug
       title: 'App Suter',
       theme: ThemeData(
-        colorScheme: ColorScheme.light(
+        colorScheme: const ColorScheme.light(
           primary: Colors.blue, // Cor primária
           secondary: Colors.blueAccent, // Cor de destaque
         ),
@@ -48,9 +49,9 @@ class PontoParada extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasData && snapshot.data != null) {
-            return  LoginScreen();
+            return  const TelaInicio();
           } else {
-            return  TelaInicio();
+            return  const LoginScreen(); //login
           }
         },
       ),

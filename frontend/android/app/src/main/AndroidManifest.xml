@@ -9,7 +9,7 @@
         android:maxSdkVersion="28" />
 
     <application
-        android:label="Ponto Parada"
+        android:label="SUTER - Ponto Certo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

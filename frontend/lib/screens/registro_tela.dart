@@ -39,14 +39,21 @@ class _RegistroTelaState extends State<RegistroTela> {
 
     for (var point in points) {
       final sucesso = await PontoParadaService.criarPonto(
+        idUsuario: point['idUsuario'],
         endereco: point['endereco'],
-        haAbrigo: point['haAbrigo'] ?? false,
-        linhasTransporte: point['linhasTransporte'] ?? false,
-        longitude: point['longitude'],
         latitude: point['latitude'],
-        latLongInterpolado: point['latLongInterpolado'] ?? '',
-        imagensPaths: List<String>.from(point['imagensPaths'] ?? []),
-        abrigos: List<Map<String, dynamic>>.from(point['abrigos'] ?? []),
+        longitude: point['longitude'],
+        linhaEscolares: point['LinhaEscolares'] ?? false,
+        linhaStpc: point['LinhaStpc'] ?? false,
+        idTipoAbrigo: point['idTipoAbrigo'] ?? 0,
+        latitudeInterpolado: point['latitudeInterpolado'] ?? point['latitude'],
+        longitudeInterpolado: point['longitudeInterpolado'] ?? point['longitude'],
+        dataVisita: point['DataVisita'] ?? DateTime.now().toIso8601String(),
+        pisoTatil: point['PisoTatil'] ?? false,
+        rampa: point['Rampa'] ?? false,
+        patologia: point['Patologia'] ?? false,
+        imgBlobPaths: List<String>.from(point['imgBlobPaths'] ?? []),
+        imagensPatologiaPaths: List<String>.from(point['imagensPatologiaPaths'] ?? []),
       );
 
       if (!sucesso) {
@@ -145,14 +152,22 @@ class _RegistroTelaState extends State<RegistroTela> {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (ctx) => FormularioParadaTela(
-                                latLng: LatLng(point['latitude'], point['longitude']),
+                                latLng: LatLng(
+                                  point['latitude'] is double
+                                      ? point['latitude']
+                                      : double.tryParse(point['latitude'].toString()) ?? 0.0,
+                                  point['longitude'] is double
+                                      ? point['longitude']
+                                      : double.tryParse(point['longitude'].toString()) ?? 0.0,
+                                ),
                                 initialData: point,
                                 latLongInterpolado: point['latLongInterpolado'] ?? '',
-                                index: index, // Passa o índice do ponto atual
+                                index: index,
                               ),
                             ),
                           );
-                        }),
+                        }
+                    ),
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () {

@@ -1,17 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/tela_inicio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../providers/ponto_parada_provider.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FormularioParadaTela extends StatefulWidget {
   final LatLng latLng;
-  final String latLongInterpolado;
+  final LatLng latLongInterpolado;
   final Map<String, dynamic>? initialData;
-  final int? index; // Para identificar se é uma edição
+  final int? index;
 
   FormularioParadaTela({
     required this.latLng,
@@ -26,238 +25,478 @@ class FormularioParadaTela extends StatefulWidget {
 
 class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   final TextEditingController _addressController = TextEditingController();
-  bool _temHabrigo = false;
+  bool _linhaEscolares = false;
+  bool _linhaStpc = false;
+  bool _pisoTatil = false;
+  bool _rampa = false;
+  bool _patologia = false;
+  bool _temAbrigo = false;
   bool _temPatologia = false;
-  bool _temAcessibilidade = false;
-  bool _transportePublico = false;
-  String? _selectedShelterType;
-  List<String> _shelterTypes = [];
-  List<File> _imageFiles = []; // Armazena múltiplas imagens
+  int? _idUsuario;
+  DateTime _dataVisita = DateTime.now();
+  List<Map<String, dynamic>> _abrigos = [];
+  List<int> _idTiposAbrigos = [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ]; // IDs para seleção de abrigo
+
   final ImagePicker _picker = ImagePicker();
-  File? _imageFile;
-  List<Map<String, dynamic>> _shelters = [];
 
   @override
   void initState() {
     super.initState();
+    _idUsuario = 4; // Sempre atribui o ID 4 para testes
+    _addressController.text =
+        widget.initialData?['endereco'] ?? 'Carregando endereço...';
+
     if (widget.initialData != null) {
-      _addressController.text = widget.initialData?['endereco'] ?? '';
-      _temHabrigo = widget.initialData?['haAbrigo'] ?? false;
-      _temPatologia = widget.initialData?['patologias'] ?? false;
-      _temAcessibilidade = widget.initialData?['acessibilidade'] ?? false;
-      _transportePublico = widget.initialData?['linhasTransporte'] ?? false;
-      _selectedShelterType = widget.initialData?['tipoAbrigo'];
+      _temAbrigo = widget.initialData?['temAbrigo'] ?? false;
+      _temPatologia = widget.initialData?['Patologia'] ?? false;
+      _pisoTatil = widget.initialData?['PisoTatil'] ?? false;
+      _rampa = widget.initialData?['Rampa'] ?? false;
+      _linhaEscolares = widget.initialData?['LinhaEscolares'] ?? false;
+      _linhaStpc = widget.initialData?['LinhaStpc'] ?? false;
 
-      // Carregar as imagens previamente salvas
-      if (widget.initialData?['imagensPaths'] != null) {
-        _imageFiles = List<String>.from(widget.initialData?['imagensPaths'] ?? [])
-            .map((path) => File(path))
-            .toList();
+      if (widget.initialData?['abrigos'] != null) {
+        _abrigos =
+            List<Map<String, dynamic>>.from(widget.initialData?['abrigos'])
+                .map((abrigo) {
+              return {
+                "idTipoAbrigo": abrigo["idTipoAbrigo"],
+                "temPatologia": abrigo["temPatologia"] ?? false,
+                "imgBlobPaths": List<String>.from(
+                    abrigo["imgBlobPaths"] ?? []), // ✅ Conversão correta
+                "imagensPatologiaPaths": List<String>.from(
+                    abrigo["imagensPatologiaPaths"] ?? []), // ✅ Conversão correta
+              };
+            }).toList();
       }
-      if (widget.initialData != null && widget.initialData?['abrigos'] != null) {
-        _shelters = List<Map<String, dynamic>>.from(widget.initialData?['abrigos']);
-      }
-
     }
-    _buscarTiposAbrigos();
   }
 
-  void _addShelter() {
+  Future<void> _carregarDadosUsuario() async {
+    final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _shelters.add({
-        "tipoAbrigo": null,
+      _idUsuario = prefs.getInt('idUsuario');
+    });
+  }
+
+  void _adicionarAbrigo() {
+    setState(() {
+      _abrigos.add({
+        "idTipoAbrigo": null,
         "temPatologia": false,
-        "temAcessibilidade": false
+        "imgBlobPaths": <String>[],
+        "imagensPatologiaPaths": <String>[],
       });
     });
   }
 
-  void _removeShelter(int index) {
+  void _removerAbrigo(int index) {
     setState(() {
-      _shelters.removeAt(index);
+      _abrigos.removeAt(index);
     });
   }
 
-
-  Future<void> _buscarTiposAbrigos() async {
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() {
-      _shelterTypes = ['Abrigo Tipo C Novo','Abrigo Tipo C', 'Abrigo Tipo Reduzido', 'Abrigo Padrão I', 'Abrigo Padrão II', 'Abrigo tradicional (Niemayer- Sabino Barroso)', 'Abrigo Concretado in loco', 'Abrigo Concreto DER', 'Abrigo Canalete 90', 'Metrobel', 'Abrigo Cemusa 2001', 'Abrigo Cemusa Foste', 'Abrigo Cemusa Grimshaw', 'Abrigo Metálico/Brasileirinho', 'Abrigo Especial (Aeroporto)', 'Abrigo Oval', 'Abrigo Lelé'];
-    });
-  }
-
-  Future<void> _selecionarMultiplasimagens() async {
+  Future<void> _selecionarImagemDaGaleria(List<String> listaDestino) async {
     final List<XFile>? pickedFiles = await _picker.pickMultiImage();
     if (pickedFiles != null) {
       setState(() {
-        _imageFiles.addAll(pickedFiles.map((file) => File(file.path)));
+        listaDestino.addAll(pickedFiles
+            .map((file) => file.path)
+            .toList()); // ✅ Conversão correta
       });
     }
   }
 
-// Função para capturar uma imagem com a câmera e adicioná-la à lista
-  Future<void> _tirarFoto() async {
+  Future<void> _tirarFotoComCamera(List<String> listaDestino) async {
     final pickedFile = await _picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
       setState(() {
-        _imageFiles.add(File(pickedFile.path)); // Adiciona a foto à lista de imagens
+        listaDestino.add(pickedFile.path);
       });
     }
   }
 
-  void _removerImagem(int index) {
+  void _removerImagem(int index, List<String> listaDestino) {
     setState(() {
-      _imageFiles.removeAt(index);
+      listaDestino.removeAt(index);
     });
   }
 
-  void _salvarParada(BuildContext context) {
-    if (_addressController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, preencha o campo de endereço!'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+  void _selecionarDataVisita(BuildContext context) async {
+    DateTime? novaData = await showDatePicker(
+      context: context,
+      initialDate: _dataVisita,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
 
-    if (_temHabrigo && _shelters.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Adicione pelo menos um abrigo!'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
+    if (novaData != null) {
+      setState(() {
+        _dataVisita = novaData;
+      });
     }
+  }
+
+  void _salvarParada(BuildContext context) {
+    if (!mounted) return; // Evita erro se o widget já foi desmontado
 
     final pointProvider = Provider.of<PointProvider>(context, listen: false);
+
+    if (_idUsuario == null || _addressController.text.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erro: usuário ou endereço inválido!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
 
     if (widget.index != null) {
       pointProvider.updatePoint(
         widget.index!,
+        idUsuario: _idUsuario!,
         endereco: _addressController.text,
-        haAbrigo: _temHabrigo,
-        abrigos: _shelters, // Passa a lista completa de abrigos
-        linhasTransporte: _transportePublico,
         latitude: widget.latLng.latitude,
         longitude: widget.latLng.longitude,
-        imagensPaths: _imageFiles.map((file) => file.path).toList(),
+        linhaEscolares: _linhaEscolares,
+        linhaStpc: _linhaStpc,
+        idTipoAbrigo: _abrigos.isNotEmpty ? _abrigos[0]["idTipoAbrigo"] : null,
+        latitudeInterpolado: widget.latLongInterpolado.latitude,
+        longitudeInterpolado: widget.latLongInterpolado.longitude,
+        dataVisita: _dataVisita.toIso8601String(),
+        pisoTatil: _pisoTatil,
+        rampa: _rampa,
+        patologia: _patologia,
+        imgBlobPaths: _abrigos.isNotEmpty ? _abrigos[0]["imgBlobPaths"] : [],
+        imagensPatologiaPaths:
+        _abrigos.isNotEmpty ? _abrigos[0]["imagensPatologiaPaths"] : [],
+        abrigos: _abrigos,
       );
     } else {
       pointProvider.addPoint(
+        idUsuario: _idUsuario!,
         endereco: _addressController.text,
-        haAbrigo: _temHabrigo,
-        abrigos: _shelters, // Passa a lista completa de abrigos
-        linhasTransporte: _transportePublico,
         latitude: widget.latLng.latitude,
         longitude: widget.latLng.longitude,
-        latLongInterpolado: widget.latLongInterpolado,
-        imagensPaths: _imageFiles.map((file) => file.path).toList(),
+        linhaEscolares: _linhaEscolares,
+        linhaStpc: _linhaStpc,
+        idTipoAbrigo: _abrigos.isNotEmpty ? _abrigos[0]["idTipoAbrigo"] : null,
+        latitudeInterpolado: widget.latLongInterpolado.latitude,
+        longitudeInterpolado: widget.latLongInterpolado.longitude,
+        dataVisita: _dataVisita.toIso8601String(),
+        pisoTatil: _pisoTatil,
+        rampa: _rampa,
+        patologia: _patologia,
+        imgBlobPaths: _abrigos.isNotEmpty ? _abrigos[0]["imgBlobPaths"] : [],
+        imagensPatologiaPaths:
+        _abrigos.isNotEmpty ? _abrigos[0]["imagensPatologiaPaths"] : [],
+        abrigos: _abrigos,
       );
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Parada salva com sucesso!'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    // Exibir o `SnackBar` ANTES de chamar `Navigator.pop()`
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Parada salva com sucesso!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
 
-    Navigator.of(context).pop();
+    // Aguarda o `SnackBar` antes de fechar a tela
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Formulário da Parada')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new,
+          color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blue,
+        title: const Text(
+          'Formulário da Parada',
+        ),
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Coordenadas Selecionadas: ${widget.latLng.latitude}, ${widget.latLng.longitude}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
+              // CAMPO ENDEREÇO
               TextField(
-                controller: _addressController,
-                decoration: const InputDecoration(labelText: 'Endereço'),
+                  controller: _addressController,
+                  decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Endereço')
               ),
+
               const SizedBox(height: 10),
+
+              // SWITCH PARA LINHAS ESCOLARES
               SwitchListTile(
-                title: const Text('Há abrigo?'),
-                value: _temHabrigo,
+                title: const Text('Linhas Escolares'),
+                value: _linhaEscolares,
                 onChanged: (value) {
                   setState(() {
-                    _temHabrigo = value;
-                    if (!value) {
-                      _selectedShelterType = null;
-                      _temPatologia = false;
-                      _temAcessibilidade = false;
-                    }
+                    _linhaEscolares = value;
                   });
                 },
               ),
-              if (_temHabrigo) ...[
-                const SizedBox(height: 10),
-                for (int i = 0; i < _shelters.length; i++) ...[
+
+              // SWITCH PARA LINHAS STPC
+              SwitchListTile(
+                title: const Text('Linhas STPC'),
+                value: _linhaStpc,
+                onChanged: (value) {
+                  setState(() {
+                    _linhaStpc = value;
+                  });
+                },
+              ),
+
+              // SWITCH PARA RAMPA
+              SwitchListTile(
+                title: const Text('Rampa'),
+                value: _rampa,
+                onChanged: (value) {
+                  setState(() {
+                    _rampa = value;
+                  });
+                },
+              ),
+
+              // SWITCH PARA PISO TÁTIL
+              SwitchListTile(
+                title: const Text('Piso Tátil'),
+                value: _pisoTatil,
+                onChanged: (value) {
+                  setState(() {
+                    _pisoTatil = value;
+                  });
+                },
+              ),
+
+              // SELEÇÃO DE DATA DA VISITA
+              ListTile(
+                title: Text(
+                  'Data da Visita: ${_dataVisita.day}/${_dataVisita.month}/${_dataVisita.year}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                trailing: const Icon(Icons.calendar_today, color: Colors.blue),
+                onTap: () async {
+                  DateTime? novaData = await showDatePicker(
+                    context: context,
+                    initialDate: _dataVisita,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2030),
+                  );
+                  if (novaData != null) {
+                    setState(() {
+                      _dataVisita = novaData;
+                    });
+                  }
+                },
+              ),
+
+              const SizedBox(height: 10),
+
+              // SWITCH PARA INDICAR SE TEM ABRIGO
+              SwitchListTile(
+                title: const Text('Possui Abrigo?'),
+                value: _temAbrigo,
+                onChanged: (value) {
+                  setState(() {
+                    _temAbrigo = value;
+                  });
+                },
+              ),
+
+              if (_temAbrigo) ...[
+                for (int i = 0; i < _abrigos.length; i++) ...[
                   Card(
-                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: Colors.grey, width: 1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    color: Colors.grey[50],
+                    shadowColor: Colors.grey,
+                    elevation: 5,
                     margin: const EdgeInsets.symmetric(vertical: 5),
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Column(
                         children: [
-                          DropdownButtonFormField<String>(
-                            value: _shelters[i]["tipoAbrigo"],
-                            hint: const Text('Selecione o tipo de abrigo'),
-                            items: _shelterTypes.map((String type) {
-                              return DropdownMenuItem<String>(
-                                value: type,
-                                child: Text(
-                                  type.length > 30 ? '${type.substring(0, 27)}...' : type,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
+                          DropdownButtonFormField<int>(
+                            value: _abrigos[i]["idTipoAbrigo"],
+                            items: _idTiposAbrigos.map((id) {
+                              return DropdownMenuItem<int>(
+                                  value: id, child: Text('Abrigo ID $id'));
                             }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _shelters[i]["tipoAbrigo"] = value;
-                              });
-                            },
+                            onChanged: (value) => setState(
+                                () => _abrigos[i]["idTipoAbrigo"] = value),
                             decoration: const InputDecoration(
-                              labelText: 'Tipo de Abrigo',
-                              border: OutlineInputBorder(),
-                            ),
+                                labelText: 'Tipo de Abrigo'),
                           ),
+
+                          // SELECIONAR IMAGENS DO ABRIGO
                           const SizedBox(height: 10),
-                          SwitchListTile(
-                            title: const Text('Patologias'),
-                            value: _shelters[i]["temPatologia"],
-                            onChanged: (value) {
-                              setState(() {
-                                _shelters[i]["temPatologia"] = value;
-                              });
-                            },
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: () => _selecionarImagemDaGaleria(
+                                    _abrigos[i]["imgBlobPaths"]),
+                                icon: const Icon(Icons.image),
+                                label: const Text('Galeria'),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: () => _tirarFotoComCamera(
+                                    _abrigos[i]["imgBlobPaths"]),
+                                icon: const Icon(Icons.camera_alt),
+                                label: const Text('Câmera'),
+                              ),
+                            ],
                           ),
+
+                          // EXIBIR IMAGENS DO ABRIGO
+                          if (_abrigos[i]["imgBlobPaths"].isNotEmpty)
+                            SizedBox(
+                              height: 100,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _abrigos[i]["imgBlobPaths"].length,
+                                itemBuilder: (context, index) {
+                                  return Stack(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.all(4.0),
+                                        child: Image.file(
+                                          File(_abrigos[i]["imgBlobPaths"]
+                                              [index]),
+                                          width: 100,
+                                          height: 100,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 2,
+                                        right: 2,
+                                        child: IconButton(
+                                          icon: const Icon(Icons.close,
+                                              color: Colors.red),
+                                          onPressed: () => _removerImagem(index,
+                                              _abrigos[i]["imgBlobPaths"]),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+
+                          // SWITCH PARA PATOLOGIA
                           SwitchListTile(
-                            title: const Text('Acessibilidade'),
-                            value: _shelters[i]["temAcessibilidade"],
-                            onChanged: (value) {
-                              setState(() {
-                                _shelters[i]["temAcessibilidade"] = value;
-                              });
-                            },
+                            title: const Text('Possui Patologia?'),
+                            value: _abrigos[i]["temPatologia"],
+                            onChanged: (value) => setState(
+                                () => _abrigos[i]["temPatologia"] = value),
                           ),
+
+                          // SELECIONAR IMAGENS DA PATOLOGIA
+                          if (_abrigos[i]["temPatologia"]) ...[
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: () => _selecionarImagemDaGaleria(
+                                      _abrigos[i]["imagensPatologiaPaths"]),
+                                  icon: const Icon(Icons.image),
+                                  label: const Text('Galeria'),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () => _tirarFotoComCamera(
+                                      _abrigos[i]["imagensPatologiaPaths"]),
+                                  icon: const Icon(Icons.camera_alt),
+                                  label: const Text('Câmera'),
+                                ),
+                              ],
+                            ),
+
+                            // EXIBIR IMAGENS DA PATOLOGIA
+                            if (_abrigos[i]["imagensPatologiaPaths"].isNotEmpty)
+                              SizedBox(
+                                height: 100,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: _abrigos[i]
+                                          ["imagensPatologiaPaths"]
+                                      .length,
+                                  itemBuilder: (context, index) {
+                                    return Stack(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(4.0),
+                                          child: Image.file(
+                                            File(_abrigos[i]
+                                                    ["imagensPatologiaPaths"]
+                                                [index]),
+                                            width: 100,
+                                            height: 100,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        Positioned(
+                                          top: 2,
+                                          right: 2,
+                                          child: IconButton(
+                                            icon: const Icon(Icons.close,
+                                                color: Colors.red),
+                                            onPressed: () => _removerImagem(
+                                                index,
+                                                _abrigos[i]
+                                                    ["imagensPatologiaPaths"]),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
+
+                          // BOTÃO PARA REMOVER O ABRIGO
                           Align(
                             alignment: Alignment.centerRight,
                             child: IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _removeShelter(i),
+                              onPressed: () => _removerAbrigo(i),
                             ),
                           ),
                         ],
@@ -265,106 +504,22 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 10),
                 Center(
-                  child: ElevatedButton.icon(
-                    onPressed: _addShelter,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Adicionar Abrigo'),
+                  child: ElevatedButton(
+                    onPressed: _adicionarAbrigo,
+                    child: const Text('Adicionar Abrigo'),
                   ),
                 ),
               ],
-              SwitchListTile(
-                title: const Text('Linhas de transporte público ou escolar?'),
-                value: _transportePublico,
-                onChanged: (value) {
-                  setState(() {
-                    _transportePublico = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'LatLong do ponto interpolado com rede de vias: ${widget.latLongInterpolado}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              // Botões lado a lado para selecionar imagens e tirar foto
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  SizedBox(
-                    width: 150, // Define uma largura fixa para manter uniformidade
-                    height: 50, // Mantém altura fixa para ambos os botões
-                    child: ElevatedButton.icon(
-                      onPressed: _selecionarMultiplasimagens,
-                      icon: const Icon(Icons.image),
-                      label: const Text('Galeria'),
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8), // Mantém formato quadrado
-                        ),
-                        fixedSize: const Size(150, 50), // Garante que ambos os botões tenham o mesmo tamanho
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 150,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: _tirarFoto,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Câmera'),
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        fixedSize: const Size(150, 50),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
 
-              // Exibir imagens selecionadas
-              if (_imageFiles.isNotEmpty)
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                  ),
-                  itemCount: _imageFiles.length,
-                  itemBuilder: (context, index) {
-                    return Stack(
-                      children: [
-                        Image.file(
-                          _imageFiles[index],
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                        ),
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: IconButton(
-                            icon: const Icon(Icons.close, color: Colors.red),
-                            onPressed: () => _removerImagem(index),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
               const SizedBox(height: 20),
+
               Center(
                 child: ElevatedButton(
                   onPressed: () => _salvarParada(context),
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 24),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(5),
                     ),
@@ -372,6 +527,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                   child: const Text('Salvar Parada'),
                 ),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),

@@ -7,7 +7,7 @@ class RAService {
   List<dynamic> features = []; // Cache for RA features
 
   Future<List<dynamic>> buscarRA() async {
-    final response = await http.get(Uri.parse('${caminhoBackend.baseUrl}/ras'));
+    final response = await http.get(Uri.parse('${caminhoBackend.baseUrl}/ras/'));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);

@@ -298,11 +298,18 @@ class _ParadasTelaState extends State<ParadasTela> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
+        backgroundColor: Colors.blue,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+        ),
         title: const Text('Paradas Registradas'),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
         children: [

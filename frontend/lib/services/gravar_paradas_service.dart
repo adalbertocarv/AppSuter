@@ -13,14 +13,21 @@ class PontoParadaService {
 
   /// Envia os dados de um ponto ao backend
   static Future<bool> criarPonto({
+    required int idUsuario,
     required String endereco,
-    required bool haAbrigo,
-    required bool linhasTransporte,
-    required double longitude,
     required double latitude,
-    required String latLongInterpolado,
-    required List<String> imagensPaths,
-    required List<Map<String, dynamic>> abrigos, // ✅ Adicionado o parâmetro `abrigos`
+    required double longitude,
+    required bool linhaEscolares,
+    required bool linhaStpc,
+    required int idTipoAbrigo,
+    required double latitudeInterpolado,
+    required double longitudeInterpolado,
+    required String dataVisita,
+    required bool pisoTatil,
+    required bool rampa,
+    required bool patologia,
+    required List<String> imgBlobPaths,
+    required List<String> imagensPatologiaPaths,
   }) async {
     try {
       final token = await _getToken();
@@ -29,21 +36,32 @@ class PontoParadaService {
         return false;
       }
 
-      final url = Uri.parse('${caminhoBackend.baseUrl}/paradas');
+      final url = Uri.parse('${caminhoBackend.baseUrl}/paradas/criar');
       final request = http.MultipartRequest('POST', url);
 
-      // 🔹 Adicionar os campos normais
+      // Adicionar os campos normais
+      request.fields['idUsuario'] = idUsuario.toString();
       request.fields['endereco'] = endereco;
-      request.fields['haAbrigo'] = haAbrigo.toString();
-      request.fields['linhasTransporte'] = linhasTransporte.toString();
       request.fields['latitude'] = latitude.toString();
       request.fields['longitude'] = longitude.toString();
-      request.fields['latLongInterpolado'] = latLongInterpolado;
-      request.fields['abrigos'] = jsonEncode(abrigos); 
+      request.fields['LinhaEscolares'] = linhaEscolares.toString();
+      request.fields['LinhaStpc'] = linhaStpc.toString();
+      request.fields['idTipoAbrigo'] = idTipoAbrigo.toString();
+      request.fields['latitudeInterpolado'] = latitudeInterpolado.toString();
+      request.fields['longitudeInterpolado'] = longitudeInterpolado.toString();
+      request.fields['DataVisita'] = dataVisita;
+      request.fields['PisoTatil'] = pisoTatil.toString();
+      request.fields['Rampa'] = rampa.toString();
+      request.fields['Patologia'] = patologia.toString();
 
-      // 🔹 Adicionar imagens corretamente com o nome esperado pelo backend ('imagens')
-      for (String imagePath in imagensPaths) {
-        request.files.add(await http.MultipartFile.fromPath('imagens', imagePath));
+      // Adicionar arquivos imgBlob
+      for (String imagePath in imgBlobPaths) {
+        request.files.add(await http.MultipartFile.fromPath('imgBlob', imagePath));
+      }
+
+      // Adicionar arquivos ImagensPatologia
+      for (String imagePath in imagensPatologiaPaths) {
+        request.files.add(await http.MultipartFile.fromPath('ImagensPatologia', imagePath));
       }
 
       request.headers['Authorization'] = 'Bearer $token'; // Adiciona o token no cabeçalho

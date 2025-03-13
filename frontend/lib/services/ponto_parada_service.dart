@@ -6,7 +6,7 @@ class PontoParadaService {
 
   // Método para buscar todas as paradas
   static Future<List<Map<String, dynamic>>> todasAsParadas() async {
-    final url = Uri.parse('${caminhoBackend.baseUrl}/pontos');
+    final url = Uri.parse('${caminhoBackend.baseUrl}/paradas');
 
     try {
       final response = await http.get(url, headers: {
