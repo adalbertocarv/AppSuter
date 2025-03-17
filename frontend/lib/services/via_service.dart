@@ -33,7 +33,7 @@ class GeoJsonService {
                   ponto.latitude,
                   ponto.longitude,
                 ) <=
-                    1000; // Raio de 100 metros
+                    100; // Raio de 100 metros
               });
 
               if (dentroDoRaio) {
