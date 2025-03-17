@@ -110,9 +110,10 @@ class _RegistroTelaState extends State<RegistroTela> {
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
               child: ListTile(
-                leading: point['imagensPaths'] != null && point['imagensPaths'].isNotEmpty
+                leading: (point['abrigos'] != null && point['abrigos'].isNotEmpty) &&
+                    (point['abrigos'][0]['imgBlobPaths'] != null && point['abrigos'][0]['imgBlobPaths'].isNotEmpty)
                     ? Image.file(
-                  File(point['imagensPaths'][0]),
+                  File(point['abrigos'][0]['imgBlobPaths'][0]), // Pega a primeira imagem do primeiro abrigo
                   width: 50,
                   height: 50,
                   fit: BoxFit.cover,
@@ -153,21 +154,35 @@ class _RegistroTelaState extends State<RegistroTela> {
                             MaterialPageRoute(
                               builder: (ctx) => FormularioParadaTela(
                                 latLng: LatLng(
-                                  point['latitude'] is double
-                                      ? point['latitude']
-                                      : double.tryParse(point['latitude'].toString()) ?? 0.0,
-                                  point['longitude'] is double
-                                      ? point['longitude']
-                                      : double.tryParse(point['longitude'].toString()) ?? 0.0,
+                                  double.tryParse(point['latitude'].toString()) ?? 0.0,
+                                  double.tryParse(point['longitude'].toString()) ?? 0.0,
                                 ),
-                                initialData: point,
-                                latLongInterpolado: point['latLongInterpolado'] ?? '',
+                                latLongInterpolado: LatLng(
+                                  double.tryParse(point['latitudeInterpolado']?.toString() ?? '') ??
+                                      double.tryParse(point['latitude'].toString()) ??
+                                      0.0,
+                                  double.tryParse(point['longitudeInterpolado']?.toString() ?? '') ??
+                                      double.tryParse(point['longitude'].toString()) ??
+                                      0.0,
+                                ),
+                                initialData: {
+                                  ...point, // Mantém os dados originais
+                                  "imgBlobPaths": List<String>.from(point["imgBlobPaths"] ?? []),
+                                  "imagensPatologiaPaths": List<String>.from(point["imagensPatologiaPaths"] ?? []),
+                                  "abrigos": point['abrigos'] != null
+                                      ? List<Map<String, dynamic>>.from(point['abrigos']).map((abrigo) => {
+                                    "idTipoAbrigo": abrigo["idTipoAbrigo"],
+                                    "temPatologia": abrigo["temPatologia"] ?? false,
+                                    "imgBlobPaths": List<String>.from(abrigo["imgBlobPaths"] ?? []), // Garante cópia independente
+                                    "imagensPatologiaPaths": List<String>.from(abrigo["imagensPatologiaPaths"] ?? []), // Garante cópia independente
+                                  }).toList()
+                                      : [],
+                                },
                                 index: index,
                               ),
                             ),
                           );
-                        }
-                    ),
+                        }),
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () {

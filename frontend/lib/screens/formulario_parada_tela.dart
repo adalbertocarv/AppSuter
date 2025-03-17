@@ -27,6 +27,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   final TextEditingController _addressController = TextEditingController();
   bool _linhaEscolares = false;
   bool _linhaStpc = false;
+  bool _baia = false;
   bool _pisoTatil = false;
   bool _rampa = false;
   bool _patologia = false;
@@ -35,55 +36,72 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   int? _idUsuario;
   DateTime _dataVisita = DateTime.now();
   List<Map<String, dynamic>> _abrigos = [];
-  List<int> _idTiposAbrigos = [
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8
-  ]; // IDs para seleção de abrigo
+  final List<int> _idTiposAbrigos = [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18
+  ];
+  final Map<int, String> _mapIdTipoAbrigo = {
+    1: "Abrigo Lel",
+    2: "Tipo Padrão II",
+    3: "Abrigo Oval",
+    4: "Abrigo Reduzido",
+    5: "Abrigo Canelete 90",
+    6: "Abrigo Cemusa 2001",
+    7: "Abrigo Cemusa Foste",
+    8: "Tipo Padrão I",
+    9: "Abrigo Grimshaw",
+    10: "Abrigo Concretado in loco",
+    11: "Abrigo Concreto DER",
+    12: "Abrigo Especial Aeroporto",
+    13: "Abrigo Metálico ou Brasileiro",
+    14: "Abrigo Metrobel",
+    15: "Abrigo Padrão II",
+    16: "Abrigo Tipo C novo",
+    17: "Abrigo Tipo C",
+    18: "Abrigo Tradicional Niemeyer",
+  };
 
   final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    _idUsuario = 4; // Sempre atribui o ID 4 para testes
-    _addressController.text =
-        widget.initialData?['endereco'] ?? 'Carregando endereço...';
+    _carregarDadosUsuario();
 
     if (widget.initialData != null) {
-      _temAbrigo = widget.initialData?['temAbrigo'] ?? false;
-      _temPatologia = widget.initialData?['Patologia'] ?? false;
-      _pisoTatil = widget.initialData?['PisoTatil'] ?? false;
-      _rampa = widget.initialData?['Rampa'] ?? false;
+      _addressController.text = widget.initialData?['endereco'] ?? '';
       _linhaEscolares = widget.initialData?['LinhaEscolares'] ?? false;
       _linhaStpc = widget.initialData?['LinhaStpc'] ?? false;
+      _pisoTatil = widget.initialData?['PisoTatil'] ?? false;
+      _rampa = widget.initialData?['Rampa'] ?? false;
+      _patologia = widget.initialData?['Patologia'] ?? false;
 
+      // Verifique se há abrigos para determinar o estado de _temAbrigo
+      _temAbrigo = (widget.initialData?['abrigos'] != null &&
+          widget.initialData?['abrigos'].isNotEmpty) ||
+          widget.initialData?['haAbrigo'] == true;
+
+      _dataVisita = widget.initialData?['DataVisita'] != null
+          ? DateTime.tryParse(widget.initialData!['DataVisita']) ?? DateTime.now()
+          : DateTime.now();
+
+      // Criando cópias separadas para evitar duplicação de imagens
       if (widget.initialData?['abrigos'] != null) {
-        _abrigos =
-            List<Map<String, dynamic>>.from(widget.initialData?['abrigos'])
-                .map((abrigo) {
-              return {
-                "idTipoAbrigo": abrigo["idTipoAbrigo"],
-                "temPatologia": abrigo["temPatologia"] ?? false,
-                "imgBlobPaths": List<String>.from(
-                    abrigo["imgBlobPaths"] ?? []), // ✅ Conversão correta
-                "imagensPatologiaPaths": List<String>.from(
-                    abrigo["imagensPatologiaPaths"] ?? []), // ✅ Conversão correta
-              };
-            }).toList();
+          _abrigos = List<Map<String, dynamic>>.from(widget.initialData?['abrigos']).map((abrigo) {
+            return {
+              "idTipoAbrigo": abrigo["idTipoAbrigo"],
+              "temPatologia": abrigo["temPatologia"] ?? false,
+              "imgBlobPaths": List<String>.from(abrigo["imgBlobPaths"] ?? []), // Garante que a lista seja única
+              "imagensPatologiaPaths": List<String>.from(abrigo["imagensPatologiaPaths"] ?? []), // Garante que a lista seja única
+            };
+          }).toList();
+        }
       }
     }
-  }
 
   Future<void> _carregarDadosUsuario() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _idUsuario = prefs.getInt('idUsuario');
+      _idUsuario = 4;
     });
   }
 
@@ -110,7 +128,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       setState(() {
         listaDestino.addAll(pickedFiles
             .map((file) => file.path)
-            .toList()); // ✅ Conversão correta
+            .toList());
       });
     }
   }
@@ -124,11 +142,24 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     }
   }
 
-  void _removerImagem(int index, List<String> listaDestino) {
+  void _removerImagem(int index, List<String> listaDestino, int abrigoIndex) {
     setState(() {
-      listaDestino.removeAt(index);
+      _abrigos[abrigoIndex]["imagensPatologiaPaths"] = List<String>.from(_abrigos[abrigoIndex]["imagensPatologiaPaths"]);
+      _abrigos[abrigoIndex]["imagensPatologiaPaths"].removeAt(index);
     });
   }
+
+  Future<void> _adicionarImagemGaleria(int abrigoIndex) async {
+    final List<XFile>? pickedFiles = await _picker.pickMultiImage();
+    if (pickedFiles != null) {
+      setState(() {
+        // Criamos uma cópia independente da lista antes de adicionar imagens
+        _abrigos[abrigoIndex]["imgBlobPaths"] = List<String>.from(_abrigos[abrigoIndex]["imgBlobPaths"]);
+        _abrigos[abrigoIndex]["imgBlobPaths"].addAll(pickedFiles.map((file) => file.path).toList());
+      });
+    }
+  }
+
 
   void _selecionarDataVisita(BuildContext context) async {
     DateTime? novaData = await showDatePicker(
@@ -279,6 +310,16 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                   });
                 },
               ),
+              // SWITCH PARA LINHAS STPC
+              SwitchListTile(
+                title: const Text('Baia'),
+                value: _baia,
+                onChanged: (value) {
+                  setState(() {
+                    _baia = value;
+                  });
+                },
+              ),
 
               // SWITCH PARA RAMPA
               SwitchListTile(
@@ -356,12 +397,12 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                             value: _abrigos[i]["idTipoAbrigo"],
                             items: _idTiposAbrigos.map((id) {
                               return DropdownMenuItem<int>(
-                                  value: id, child: Text('Abrigo ID $id'));
+                                value: id,
+                                child: Text(_mapIdTipoAbrigo[id] ?? 'Desconhecido'), // Exibe o nome correto
+                              );
                             }).toList(),
-                            onChanged: (value) => setState(
-                                () => _abrigos[i]["idTipoAbrigo"] = value),
-                            decoration: const InputDecoration(
-                                labelText: 'Tipo de Abrigo'),
+                            onChanged: (value) => setState(() => _abrigos[i]["idTipoAbrigo"] = value),
+                            decoration: const InputDecoration(labelText: 'Tipo de Abrigo'),
                           ),
 
                           // SELECIONAR IMAGENS DO ABRIGO
@@ -383,8 +424,8 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                               ),
                             ],
                           ),
-
-                          // EXIBIR IMAGENS DO ABRIGO
+//EXIBIR IMAGENS
+                          // EXIBIR IMAGENS
                           if (_abrigos[i]["imgBlobPaths"].isNotEmpty)
                             SizedBox(
                               height: 100,
@@ -397,8 +438,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                                       Padding(
                                         padding: const EdgeInsets.all(4.0),
                                         child: Image.file(
-                                          File(_abrigos[i]["imgBlobPaths"]
-                                              [index]),
+                                          File(_abrigos[i]["imgBlobPaths"][index]),
                                           width: 100,
                                           height: 100,
                                           fit: BoxFit.cover,
@@ -408,10 +448,14 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                                         top: 2,
                                         right: 2,
                                         child: IconButton(
-                                          icon: const Icon(Icons.close,
-                                              color: Colors.red),
-                                          onPressed: () => _removerImagem(index,
-                                              _abrigos[i]["imgBlobPaths"]),
+                                          icon: const Icon(Icons.close, color: Colors.red),
+                                          onPressed: () {
+                                            setState(() {
+                                              // Criando cópia antes de remover para evitar referência compartilhada
+                                              _abrigos[i]["imgBlobPaths"] = List<String>.from(_abrigos[i]["imgBlobPaths"]);
+                                              _abrigos[i]["imgBlobPaths"].removeAt(index);
+                                            });
+                                          },
                                         ),
                                       ),
                                     ],
@@ -419,7 +463,6 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                                 },
                               ),
                             ),
-
                           // SWITCH PARA PATOLOGIA
                           SwitchListTile(
                             title: const Text('Possui Patologia?'),
@@ -476,12 +519,12 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                                           top: 2,
                                           right: 2,
                                           child: IconButton(
-                                            icon: const Icon(Icons.close,
-                                                color: Colors.red),
+                                            icon: const Icon(Icons.close, color: Colors.red),
                                             onPressed: () => _removerImagem(
-                                                index,
-                                                _abrigos[i]
-                                                    ["imagensPatologiaPaths"]),
+                                              index, // Índice da imagem dentro da lista
+                                              _abrigos[i]["imagensPatologiaPaths"], // Lista de imagens do abrigo específico
+                                              i, // Índice do abrigo ao qual a imagem pertence
+                                            ),
                                           ),
                                         ),
                                       ],

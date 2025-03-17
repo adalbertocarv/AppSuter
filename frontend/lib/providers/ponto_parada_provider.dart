@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/comprimir_imagem.dart';
 
 class PointProvider with ChangeNotifier {
   List<Map<String, dynamic>> _points = [];
@@ -42,6 +44,29 @@ class PointProvider with ChangeNotifier {
     required List<String> imagensPatologiaPaths,
     required List<Map<String, dynamic>> abrigos,
   }) async {
+    // Comprimir todas as imagens antes de salvar
+    List<String> compressedImgBlobPaths = [];
+    for (String imagePath in imgBlobPaths) {
+      File compressedFile = await compressImage(File(imagePath));
+      compressedImgBlobPaths.add(compressedFile.path);
+    }
+
+    List<String> compressedImagensPatologiaPaths = [];
+    for (String imagePath in imagensPatologiaPaths) {
+      File compressedFile = await compressImage(File(imagePath));
+      compressedImagensPatologiaPaths.add(compressedFile.path);
+    }
+
+    // Criar cópia independente dos abrigos com imagens comprimidas
+    List<Map<String, dynamic>> abrigosProcessados = abrigos.map((abrigo) {
+      return {
+        "idTipoAbrigo": abrigo["idTipoAbrigo"],
+        "temPatologia": abrigo["temPatologia"] ?? false,
+        "imgBlobPaths": compressedImgBlobPaths, // Armazena as imagens comprimidas
+        "imagensPatologiaPaths": compressedImagensPatologiaPaths,
+      };
+    }).toList();
+
     final newPoint = {
       "idUsuario": idUsuario,
       "endereco": endereco,
@@ -56,9 +81,9 @@ class PointProvider with ChangeNotifier {
       "PisoTatil": pisoTatil,
       "Rampa": rampa,
       "Patologia": patologia,
-      "imgBlobPaths": imgBlobPaths,
-      "imagensPatologiaPaths": imagensPatologiaPaths,
-      "abrigos": abrigos,
+      "imgBlobPaths": compressedImgBlobPaths, // Armazena imagens comprimidas
+      "imagensPatologiaPaths": compressedImagensPatologiaPaths,
+      "abrigos": abrigosProcessados,
     };
 
     _points.add(newPoint);
@@ -91,6 +116,29 @@ class PointProvider with ChangeNotifier {
       return;
     }
 
+    // Comprimir todas as imagens antes de atualizar
+    List<String> compressedImgBlobPaths = [];
+    for (String imagePath in imgBlobPaths) {
+      File compressedFile = await compressImage(File(imagePath));
+      compressedImgBlobPaths.add(compressedFile.path);
+    }
+
+    List<String> compressedImagensPatologiaPaths = [];
+    for (String imagePath in imagensPatologiaPaths) {
+      File compressedFile = await compressImage(File(imagePath));
+      compressedImagensPatologiaPaths.add(compressedFile.path);
+    }
+
+    // Criar cópia independente dos abrigos com imagens comprimidas
+    List<Map<String, dynamic>> abrigosProcessados = abrigos.map((abrigo) {
+      return {
+        "idTipoAbrigo": abrigo["idTipoAbrigo"],
+        "temPatologia": abrigo["temPatologia"] ?? false,
+        "imgBlobPaths": compressedImgBlobPaths, // 🔥 Usa imagens comprimidas
+        "imagensPatologiaPaths": compressedImagensPatologiaPaths,
+      };
+    }).toList();
+
     final updatedPoint = {
       "idUsuario": idUsuario,
       "endereco": endereco,
@@ -105,15 +153,16 @@ class PointProvider with ChangeNotifier {
       "PisoTatil": pisoTatil,
       "Rampa": rampa,
       "Patologia": patologia,
-      "imgBlobPaths": imgBlobPaths,
-      "imagensPatologiaPaths": imagensPatologiaPaths,
-      "abrigos": abrigos,
+      "imgBlobPaths": compressedImgBlobPaths, // Armazena imagens comprimidas
+      "imagensPatologiaPaths": compressedImagensPatologiaPaths,
+      "abrigos": abrigosProcessados,
     };
 
     _points[index] = updatedPoint;
     notifyListeners();
     await _savePoints();
   }
+
 
   /// Remover um ponto por índice
   void removePoint(int index) {
