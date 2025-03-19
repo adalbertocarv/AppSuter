@@ -17,20 +17,20 @@ class CarregamentoTela extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.blue.shade900,
       body: Center(
         child: FutureBuilder<String>(
           future: enderecoFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Column(
+              return const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  CircularProgressIndicator(),
+                children: [
+                  CircularProgressIndicator(color: Colors.white),
                   SizedBox(height: 20),
                   Text(
                     "Buscando endereço...",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ],
               );
@@ -40,9 +40,9 @@ class CarregamentoTela extends StatelessWidget {
                 children: [
                   const Icon(Icons.error, color: Colors.red, size: 50),
                   const SizedBox(height: 20),
-                  Text(
+                  const Text(
                     "Erro ao buscar endereço:",
-                    style: const TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),

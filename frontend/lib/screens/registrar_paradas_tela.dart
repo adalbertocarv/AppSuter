@@ -5,16 +5,13 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
-import '../main.dart';
 import '../providers/ponto_parada_provider.dart';
 import '../services/paradas_service.dart';
-import 'carregamento_tela.dart';
+import 'carregamento_endereco_tela.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import '../services/enderecoOSM_service.dart';
 import '../services/via_service.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
-
-
 
 class RegistrarParadaTela extends StatefulWidget {
   const RegistrarParadaTela({super.key});
@@ -30,6 +27,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
   LatLng? _userLocation; // Armazena a localização do usuário
   bool _isLoading = true; // Indica se a localização está sendo carregada
   bool _viaConfirmada = false; // Indica se a via foi confirmada
+  bool showSatellite = false; // Estado para alternar sobreposição do satélite
   Timer? _timer; //consultar polylines a cada 30s
   List<Marker> _markers = [];
   final ParadasService _paradasService =
@@ -37,7 +35,11 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
   bool _mostrarMarcadores = false; // Inicialmente visível
   final EnderecoService _enderecoService =
   EnderecoService(); // Serviço de busca de endereço
-  String? _enderecoAtual;
+
+  // URLs dos tiles
+  final String openStreetMapUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  final String esriSatelliteUrl = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
+
 
   List<Polyline> _polylines = [];
   List<LatLng> _consolidatedPoints = [];
@@ -178,10 +180,9 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
         ponto.longitude,
       );
 
-      if (endereco != null && endereco.formattedAddress.isNotEmpty) {
+      if (endereco.formattedAddress.isNotEmpty) {
         if (mounted) {
           setState(() {
-            _enderecoAtual = endereco.formattedAddress;
           });
         }
       } else {
@@ -194,7 +195,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Erro ao buscar o endereço'),
           backgroundColor: Colors.red,
         ),
@@ -323,7 +324,6 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
         _pontoParadaConfirmado = null;
         _pontoInterpolado = null;
         _viaConfirmada = false;
-        _enderecoAtual = null;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -375,6 +375,19 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
 
   @override
   Widget build(BuildContext context) {
+    final pointProvider = Provider.of<PointProvider>(context);
+    final paradasTemporarias = pointProvider.points.map((point) {
+      return Marker(
+          point: LatLng(point['latitude'], point['longitude']),
+          child: Transform.translate(
+              offset: const Offset(0, -20),
+              child: const Icon(
+                Icons.location_pin,
+                color: Colors.green,
+                size: 35,
+              ))
+      );
+    }).toList();
     return Scaffold(
       body: Stack(
         children: [
@@ -402,11 +415,18 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
                   }
               ),
               children: [
+                // Camada Base: OpenStreetMap
                 TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  urlTemplate: openStreetMapUrl,
                   userAgentPackageName: 'com.ponto.parada.frontend',
                   tileProvider: _tileProvider,
                 ),
+                // Camada de Satélite: GoogleMaps (Visibilidade controlada)
+                if (showSatellite)
+                  TileLayer(
+                    urlTemplate: esriSatelliteUrl,
+                    userAgentPackageName: 'com.ponto.parada.frontend',
+                  ),
                 // Clusterização apenas para _markers
                 if (_mostrarMarcadores && _markers.isNotEmpty)
                   MarkerClusterLayerWidget(
@@ -437,7 +457,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
                       polygonOptions: PolygonOptions(
                         borderColor: Colors.blue, // Cor da borda do polígono
                         borderStrokeWidth: 3, // Largura da borda
-                        color: Colors.blue.withOpacity(0.2), // Cor de preenchimento com opacidade
+                        color: Colors.blue.withValues(alpha: 0.2), // Cor de preenchimento com opacidade
                       ),
                     ),
                   ),
@@ -460,6 +480,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
                             ),
                           ),
                         ),
+                      ...paradasTemporarias, // Adiciona os markers do provider
                     ],
                   ),
                 PolylineLayer(polylines: _polylines),
@@ -474,7 +495,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
                           offset: const Offset(0, -22),
                           child: const Icon(
                             Icons.location_on,
-                            color: Colors.green,
+                            color: Colors.greenAccent,
                             size: 45,
                           ),
                         ),
@@ -516,7 +537,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
               ),
             ),
           Positioned(
-            bottom: 60,
+            bottom: 80,
             left: 16,
             right: 16,
             child: ElevatedButton(
@@ -590,7 +611,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
               onPressed: _centralizarLocalizacaoUsuario,
               child: const Icon(Icons.my_location),
               tooltip: 'Minha localização',
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.blue[900],
             ),
           ),
           Positioned(
@@ -603,14 +624,29 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
                     !_mostrarMarcadores; // Alterna entre true/false
                   });
                 },
-                backgroundColor: _mostrarMarcadores ? Colors.blue : Colors.grey,
+                backgroundColor: _mostrarMarcadores ? Colors.blue[900] : Colors.grey,
                 child: Icon(_mostrarMarcadores
                     ? Icons.location_pin
                     : Icons.location_off_sharp),
                 tooltip: _mostrarMarcadores
-                    ? "Ocultar Marcadores"
-                    : "Mostrar Marcadores",
-              ))
+                    ? "Ocultar Paradas antigas"
+                    : "Mostrar Paradas antigas",
+              )),
+
+          // Botão para ativar/desativar a sobreposição de satélite
+          Positioned(
+            top: 140,
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: () {
+                setState(() {
+                  showSatellite = !showSatellite; // Alterna exibição do satélite
+                });
+              },
+              child: Icon(showSatellite ? Icons.map : Icons.satellite),
+              tooltip: 'Alternar entre camadas de mapa'
+            ),
+          ),
         ],
       ),
     );

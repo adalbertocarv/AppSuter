@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:async';
-import 'package:frontend/models/baseUrl_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -26,9 +25,6 @@ class LoginService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', token);
       await prefs.setString('token_expiration', expirationDate.toIso8601String());
-
-      // Agendar logout automático
-      scheduleLogout(expirationDate);
 
       return token;
     } else {
@@ -59,20 +55,4 @@ class LoginService {
     await prefs.remove('token_expiration');
   }
 
-  // Agendar logout automático
-  static void scheduleLogout(DateTime expirationDate) {
-    final currentTime = DateTime.now();
-    final duration = expirationDate.difference(currentTime);
-
-    if (duration.isNegative) {
-      // O token já expirou, faça logout imediatamente
-      logout();
-    } else {
-      // Agendar logout quando o token expirar
-      Timer(duration, () async {
-        await logout();
-        print("Sessão expirada. Logout automático realizado.");
-      });
-    }
-  }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import '../services/enderecoOSM_service.dart';
 
 class MapaConsultaScreen extends StatefulWidget {
   @override
@@ -10,7 +9,7 @@ class MapaConsultaScreen extends StatefulWidget {
 
 class _MapaConsultaScreenState extends State<MapaConsultaScreen> {
   final MapController _mapController = MapController();
-  final EnderecoService _enderecoService = EnderecoService();  // Instância do serviço
+// Instância do serviço
   String? _enderecoAtual;
 
 

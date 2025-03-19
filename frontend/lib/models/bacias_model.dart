@@ -1,3 +1,4 @@
+// ignore: depend_on_referenced_packages
 import 'package:latlong2/latlong.dart';
 
 class Bacia {

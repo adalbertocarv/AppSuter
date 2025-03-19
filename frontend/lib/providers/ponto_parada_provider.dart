@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/comprimir_imagem.dart';
 
 class PointProvider with ChangeNotifier {
   List<Map<String, dynamic>> _points = [];
@@ -26,47 +24,23 @@ class PointProvider with ChangeNotifier {
   }
 
   /// Adicionar um novo ponto localmente e fazer POST no backend
-  Future<void> addPoint({
+  Future<void> adicionarPontos({
     required int idUsuario,
     required String endereco,
     required double latitude,
     required double longitude,
     required bool linhaEscolares,
     required bool linhaStpc,
-    int? idTipoAbrigo,
+    required int idTipoAbrigo,
     required double latitudeInterpolado,
     required double longitudeInterpolado,
     required String dataVisita,
+    required bool baia,
     required bool pisoTatil,
     required bool rampa,
     required bool patologia,
-    required List<String> imgBlobPaths,
-    required List<String> imagensPatologiaPaths,
     required List<Map<String, dynamic>> abrigos,
   }) async {
-    // Comprimir todas as imagens antes de salvar
-    List<String> compressedImgBlobPaths = [];
-    for (String imagePath in imgBlobPaths) {
-      File compressedFile = await compressImage(File(imagePath));
-      compressedImgBlobPaths.add(compressedFile.path);
-    }
-
-    List<String> compressedImagensPatologiaPaths = [];
-    for (String imagePath in imagensPatologiaPaths) {
-      File compressedFile = await compressImage(File(imagePath));
-      compressedImagensPatologiaPaths.add(compressedFile.path);
-    }
-
-    // Criar cópia independente dos abrigos com imagens comprimidas
-    List<Map<String, dynamic>> abrigosProcessados = abrigos.map((abrigo) {
-      return {
-        "idTipoAbrigo": abrigo["idTipoAbrigo"],
-        "temPatologia": abrigo["temPatologia"] ?? false,
-        "imgBlobPaths": compressedImgBlobPaths, // Armazena as imagens comprimidas
-        "imagensPatologiaPaths": compressedImagensPatologiaPaths,
-      };
-    }).toList();
-
     final newPoint = {
       "idUsuario": idUsuario,
       "endereco": endereco,
@@ -74,16 +48,18 @@ class PointProvider with ChangeNotifier {
       "longitude": longitude,
       "LinhaEscolares": linhaEscolares,
       "LinhaStpc": linhaStpc,
-      "idTipoAbrigo": idTipoAbrigo,
+      "idTipoAbrigo": abrigos.isNotEmpty ? abrigos.first["idTipoAbrigo"] : null,
       "latitudeInterpolado": latitudeInterpolado,
       "longitudeInterpolado": longitudeInterpolado,
       "DataVisita": dataVisita,
+      "Baia": baia, // Correção adicionada
       "PisoTatil": pisoTatil,
       "Rampa": rampa,
       "Patologia": patologia,
-      "imgBlobPaths": compressedImgBlobPaths, // Armazena imagens comprimidas
-      "imagensPatologiaPaths": compressedImagensPatologiaPaths,
-      "abrigos": abrigosProcessados,
+      "abrigos": abrigos,
+      "haAbrigo": abrigos.isNotEmpty, // Correção da lógica
+      "acessibilidade": pisoTatil || rampa,
+      "linhasTransporte": linhaEscolares || linhaStpc,
     };
 
     _points.add(newPoint);
@@ -92,7 +68,7 @@ class PointProvider with ChangeNotifier {
   }
 
   /// Atualizar um ponto existente
-  Future<void> updatePoint(
+  Future<void> atualizarPontos(
       int index, {
         required int idUsuario,
         required String endereco,
@@ -100,44 +76,20 @@ class PointProvider with ChangeNotifier {
         required double longitude,
         required bool linhaEscolares,
         required bool linhaStpc,
-        int? idTipoAbrigo,
+        required int idTipoAbrigo,
         required double latitudeInterpolado,
         required double longitudeInterpolado,
         required String dataVisita,
+        required bool baia,
         required bool pisoTatil,
         required bool rampa,
         required bool patologia,
-        required List<String> imgBlobPaths,
-        required List<String> imagensPatologiaPaths,
         required List<Map<String, dynamic>> abrigos,
       }) async {
     if (index < 0 || index >= _points.length) {
       print('Índice inválido');
       return;
     }
-
-    // Comprimir todas as imagens antes de atualizar
-    List<String> compressedImgBlobPaths = [];
-    for (String imagePath in imgBlobPaths) {
-      File compressedFile = await compressImage(File(imagePath));
-      compressedImgBlobPaths.add(compressedFile.path);
-    }
-
-    List<String> compressedImagensPatologiaPaths = [];
-    for (String imagePath in imagensPatologiaPaths) {
-      File compressedFile = await compressImage(File(imagePath));
-      compressedImagensPatologiaPaths.add(compressedFile.path);
-    }
-
-    // Criar cópia independente dos abrigos com imagens comprimidas
-    List<Map<String, dynamic>> abrigosProcessados = abrigos.map((abrigo) {
-      return {
-        "idTipoAbrigo": abrigo["idTipoAbrigo"],
-        "temPatologia": abrigo["temPatologia"] ?? false,
-        "imgBlobPaths": compressedImgBlobPaths, // 🔥 Usa imagens comprimidas
-        "imagensPatologiaPaths": compressedImagensPatologiaPaths,
-      };
-    }).toList();
 
     final updatedPoint = {
       "idUsuario": idUsuario,
@@ -146,16 +98,18 @@ class PointProvider with ChangeNotifier {
       "longitude": longitude,
       "LinhaEscolares": linhaEscolares,
       "LinhaStpc": linhaStpc,
-      "idTipoAbrigo": idTipoAbrigo,
+      "idTipoAbrigo": abrigos.isNotEmpty ? abrigos.first["idTipoAbrigo"] : null,
       "latitudeInterpolado": latitudeInterpolado,
       "longitudeInterpolado": longitudeInterpolado,
       "DataVisita": dataVisita,
+      "Baia": baia, // Correção adicionada
       "PisoTatil": pisoTatil,
       "Rampa": rampa,
       "Patologia": patologia,
-      "imgBlobPaths": compressedImgBlobPaths, // Armazena imagens comprimidas
-      "imagensPatologiaPaths": compressedImagensPatologiaPaths,
-      "abrigos": abrigosProcessados,
+      "abrigos": abrigos,
+      "haAbrigo": abrigos.isNotEmpty,
+      "acessibilidade": pisoTatil || rampa,
+      "linhasTransporte": linhaEscolares || linhaStpc,
     };
 
     _points[index] = updatedPoint;
@@ -163,16 +117,15 @@ class PointProvider with ChangeNotifier {
     await _savePoints();
   }
 
-
   /// Remover um ponto por índice
-  void removePoint(int index) {
+  void removerPontos(int index) {
     _points.removeAt(index);
     notifyListeners();
     _savePoints();
   }
 
   /// Limpar todos os pontos (opcional, usado no logout ou ao enviar para o banco)
-  Future<void> clearPoints() async {
+  Future<void> limparPontos() async {
     _points = [];
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
