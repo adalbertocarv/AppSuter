@@ -23,9 +23,9 @@ class CarregamentoTela extends StatelessWidget {
           future: enderecoFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Column(
+              return const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 20),
                   Text(
@@ -40,9 +40,9 @@ class CarregamentoTela extends StatelessWidget {
                 children: [
                   const Icon(Icons.error, color: Colors.red, size: 50),
                   const SizedBox(height: 20),
-                  Text(
+                  const Text(
                     "Erro ao buscar endereço:",
-                    style: const TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),

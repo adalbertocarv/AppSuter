@@ -1,5 +1,5 @@
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/paradas_temporario_tela.dart';
 import 'paradas_banco_tela.dart';
 import 'registrar_paradas_tela.dart';
 import 'registro_tela.dart';
@@ -18,7 +18,7 @@ class _HomeScreenState extends State<TelaInicio> {
 
   // Lista de telas associadas ao Bottom Navigation
   final List<Widget> _pages = [
-    RegistrarParadaTela(), // Tela de paradas com Flutter Map
+    const RegistrarParadaTela(), // Tela de paradas com Flutter Map
     const RegistroTela(), // Tela de registro (vazia por enquanto)
   ];
 
@@ -39,11 +39,12 @@ class _HomeScreenState extends State<TelaInicio> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // Permite que o corpo do Scaffold se estenda atrás da Navigation Bar
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.blue[900],
         centerTitle: true,
         title: const Text('Paradas e Registro'),
-        titleTextStyle: TextStyle(
+        titleTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 20,
         ),
@@ -53,9 +54,9 @@ class _HomeScreenState extends State<TelaInicio> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue),
-              child: Text(
+            DrawerHeader(
+              decoration: BoxDecoration(color: Colors.blue[900]),
+              child: const Text(
                 'Menu',
                 style: TextStyle(color: Colors.white, fontSize: 24),
               ),
@@ -66,17 +67,7 @@ class _HomeScreenState extends State<TelaInicio> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ParadasTela()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.location_on_outlined),
-              title: const Text('Paradas cadastradas temporarias'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ParadasTemporarioTela()),
+                  MaterialPageRoute(builder: (context) => ParadasBanco()),
                 );
               },
             ),
@@ -90,18 +81,17 @@ class _HomeScreenState extends State<TelaInicio> {
       ),
       body: _pages[
           _currentIndex], // Exibe a tela selecionada no Bottom Navigation
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
+      bottomNavigationBar: CurvedNavigationBar(
+        backgroundColor: Colors.transparent,
+        color: Theme.of(context).colorScheme.primary,
+        buttonBackgroundColor: Theme.of(context).colorScheme.secondary,
+        animationDuration: const Duration(milliseconds: 300),
+        height: 60,
+        index: _currentIndex, // Define a aba inicial
+        onTap: _onTabTapped, // Método para mudar de tela
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map),
-            label: 'Cadastrar Parada',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle),
-            label: 'Registros',
-          ),
+          Icon(Icons.map, size: 30, color: Colors.white), // Ícone da tela "Cadastrar Parada"
+          Icon(Icons.add_circle, size: 30, color: Colors.white), // Ícone da tela "Registros"
         ],
       ),
     );

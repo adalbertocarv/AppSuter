@@ -1,3 +1,3 @@
 class caminhoBackend {
-  static const String baseUrl = 'http://100.87.130.42:3000';
+  static const String baseUrl = 'http://10.233.144.111:3000';
 }

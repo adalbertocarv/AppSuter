@@ -38,9 +38,9 @@ class PontoParada extends StatelessWidget {
       debugShowCheckedModeBanner: false, // Desativa o banner de debug
       title: 'App Suter',
       theme: ThemeData(
-        colorScheme: const ColorScheme.light(
-          primary: Colors.blue, // Cor primária
-          secondary: Colors.blueAccent, // Cor de destaque
+        colorScheme:  ColorScheme.light(
+          primary: Colors.blue.shade900, // Cor primária
+          secondary: Colors.blue.shade700, // Cor de destaque
         ),
       ),
       home: FutureBuilder<String?>(

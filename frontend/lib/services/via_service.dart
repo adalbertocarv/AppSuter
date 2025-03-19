@@ -39,7 +39,7 @@ class GeoJsonService {
               if (dentroDoRaio) {
                 polylines.add(Polyline(
                   points: pontos,
-                  strokeWidth: 4.0,
+                  strokeWidth: 5.0,
                   color: Colors.blue,
                 ));
               }
