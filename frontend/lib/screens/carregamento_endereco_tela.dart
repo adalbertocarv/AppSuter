@@ -17,7 +17,7 @@ class CarregamentoTela extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.blue.shade900,
       body: Center(
         child: FutureBuilder<String>(
           future: enderecoFuture,
@@ -26,11 +26,11 @@ class CarregamentoTela extends StatelessWidget {
               return const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(),
+                  CircularProgressIndicator(color: Colors.white),
                   SizedBox(height: 20),
                   Text(
                     "Buscando endereço...",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ],
               );

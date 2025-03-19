@@ -36,7 +36,7 @@ class PontoParada extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false, // Desativa o banner de debug
-      title: 'App Suter',
+      title: 'SEMOB - Ponto Certo',
       theme: ThemeData(
         colorScheme:  ColorScheme.light(
           primary: Colors.blue.shade900, // Cor primária

@@ -489,7 +489,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                 children: [
                   // 🔻 Dropdown para Tipo de Abrigo
                   const Text(
-                    "Tipo da parada",
+                    "Tipo da parada/Abrigo",
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 5),
@@ -682,7 +682,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
             ),
             onPressed: _adicionarAbrigo,
             child: const Text(
-              "Adicionar Parada",
+              "Adicionar Parada/Abrigo",
               style: TextStyle(fontSize: 16, color: Colors.white),
             ),
           ),
