@@ -52,12 +52,12 @@ class PointProvider with ChangeNotifier {
       "latitudeInterpolado": latitudeInterpolado,
       "longitudeInterpolado": longitudeInterpolado,
       "DataVisita": dataVisita,
-      "Baia": baia, // Correção adicionada
+      "Baia": baia,
       "PisoTatil": pisoTatil,
       "Rampa": rampa,
       "Patologia": patologia,
       "abrigos": abrigos,
-      "haAbrigo": abrigos.isNotEmpty, // Correção da lógica
+      "haAbrigo": abrigos.isNotEmpty,
       "acessibilidade": pisoTatil || rampa,
       "linhasTransporte": linhaEscolares || linhaStpc,
     };
