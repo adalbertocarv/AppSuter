@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -419,21 +418,87 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Título
-                const Center(
-                  child: Text(
-                    "Formulário da Parada",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        color: Colors.white,
+                        icon: const Icon(Icons.arrow_back_ios_new),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
                     ),
-                  ),
+                    const Text(
+                      "Formulário da Parada",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
 
                 _buildTextField("Endereço", _addressController),
 
-                const SizedBox(height: 10),
+
+                const SizedBox(height: 20),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12), // Borda arredondada de 12
+                  child: SizedBox(
+                    height: 300,
+                    width: 400,
+                    child: FlutterMap(
+                      options: MapOptions(
+                          initialCenter: widget.latLng,
+                          initialZoom: 16.0,
+                          interactionOptions: const InteractionOptions(
+                              flags: InteractiveFlag.all & ~InteractiveFlag.rotate
+                          )
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                          subdomains: ['a', 'b', 'c'],
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: widget.latLng,
+                              width: 45.0,
+                              height: 45.0,
+                              child: Transform.translate(
+                                offset: const Offset(0, -22),
+                                child: const Icon(
+                                  Icons.location_on,
+                                  color: Colors.red,
+                                  size: 45,
+                                ),
+                              ),
+                            ),
+                            if (_pontoSelecionado != null)
+                              Marker(
+                                point: _pontoSelecionado!,
+                                width: 45.0,
+                                height: 45.0,
+                                child: Transform.translate(
+                                  offset: const Offset(0, -22),
+                                  child: const Icon(
+                                    Icons.location_on,
+                                    color: Colors.greenAccent,
+                                    size: 45,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 _buildSwitch("Linhas Escolares", _linhaEscolares, (value) {
                   setState(() => _linhaEscolares = value);
@@ -497,47 +562,6 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                   ),
                 ),
 
-                const SizedBox(height: 20),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12), // Borda arredondada de 12
-                  child: SizedBox(
-                    height: 300,
-                    width: 400,
-                    child: FlutterMap(
-                      options: MapOptions(
-                        initialCenter: LatLng(-15.7950, -47.8820),
-                        initialZoom: 10.0,
-                          interactionOptions: const InteractionOptions(
-                              flags: InteractiveFlag.all & ~InteractiveFlag.rotate
-                          )
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                          subdomains: ['a', 'b', 'c'],
-                        ),
-                        MarkerLayer(markers: [
-                          if (_pontoSelecionado != null)
-                          Marker(
-                            point: _pontoSelecionado!,
-                            width: 45.0,
-                            height: 45.0,
-                            child: Transform.translate(
-                              offset: const Offset(0, -22),
-                              child: const Icon(
-                                Icons.location_on,
-                                color: Colors.greenAccent,
-                                size: 45,
-                              ),
-                            ),
-                          ),
-                        ]
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
               ],
             ),
           ),
