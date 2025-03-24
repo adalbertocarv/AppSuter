@@ -11,8 +11,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _senhaController = TextEditingController();
+  final _nomeController = TextEditingController();
+  final _matriculaController = TextEditingController();
   bool _isLoading = false;
   bool? isChecked = false; // Checkbox state
 
@@ -22,16 +22,16 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    final email = _emailController.text.trim();
-    final senha = _senhaController.text.trim();
+    final nome = _nomeController.text.trim();
+    final matricula = _matriculaController.text.trim();
 
-    final token = await LoginService.login(email, senha);
+    final idUsuario = await LoginService.login(nome, matricula);
 
     setState(() {
       _isLoading = false;
     });
 
-    if (token != null) {
+    if (idUsuario != null) {
       _showSnackBar(context, 'Autenticado com sucesso!', Colors.green);
 
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -120,9 +120,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      _buildTextField('Nome de usuário ou e-mail', _emailController, false),
+                      _buildTextField('Nome completo', _nomeController, false),
                       const SizedBox(height: 25),
-                      _buildTextField('Senha', _senhaController, true),
+                      _buildTextField('Matrícula', _matriculaController, false),
                       const SizedBox(height: 15),
                       _LembreDeMimAgora(),
                       const SizedBox(height: 30),

@@ -1,6 +1,6 @@
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/baseUrl_model.dart';
 
 class PontoParadaService {
   /// Obter o token JWT armazenado no SharedPreferences
@@ -17,63 +17,65 @@ class PontoParadaService {
     required double longitude,
     required bool linhaEscolares,
     required bool linhaStpc,
-    required int idTipoAbrigo,
     required double latitudeInterpolado,
     required double longitudeInterpolado,
     required String dataVisita,
     required bool pisoTatil,
     required bool rampa,
     required bool patologia,
+    required int idTipoAbrigo,
     required List<String> imgBlobPaths,
     required List<String> imagensPatologiaPaths,
+    required List<Map<String, dynamic>> abrigos, // 🔹 Adicionado o parâmetro `abrigos`
   }) async {
     try {
       final token = await _getToken();
       if (token == null) {
-        print('Token de autenticação não encontrado.');
+        print('❌ Token de autenticação não encontrado.');
         return false;
       }
 
-      final url = Uri.parse('${caminhoBackend.baseUrl}/paradas/criar');
+      final url = Uri.parse('http://seu_backend.com/paradas/criar');
       final request = http.MultipartRequest('POST', url);
 
-      // Adicionar os campos normais
-      request.fields['idUsuario'] = idUsuario.toString();
-      request.fields['endereco'] = endereco;
-      request.fields['latitude'] = latitude.toString();
-      request.fields['longitude'] = longitude.toString();
-      request.fields['LinhaEscolares'] = linhaEscolares.toString();
-      request.fields['LinhaStpc'] = linhaStpc.toString();
-      request.fields['idTipoAbrigo'] = idTipoAbrigo.toString();
-      request.fields['latitudeInterpolado'] = latitudeInterpolado.toString();
-      request.fields['longitudeInterpolado'] = longitudeInterpolado.toString();
-      request.fields['DataVisita'] = dataVisita;
-      request.fields['PisoTatil'] = pisoTatil.toString();
-      request.fields['Rampa'] = rampa.toString();
-      request.fields['Patologia'] = patologia.toString();
+      // Criando o body JSON
+      final Map<String, dynamic> bodyJson = {
+        "idUsuario": idUsuario,
+        "endereco": endereco,
+        "latitude": latitude,
+        "longitude": longitude,
+        "LinhaEscolares": linhaEscolares,
+        "LinhaStpc": linhaStpc,
+        "latitudeInterpolado": latitudeInterpolado,
+        "longitudeInterpolado": longitudeInterpolado,
+        "DataVisita": dataVisita,
+        "PisoTatil": pisoTatil,
+        "Rampa": rampa,
+        "Patologia": patologia,
+        "idTipoAbrigo": idTipoAbrigo,
+        "imgBlob": imgBlobPaths.map((e) => e.split('/').last).toList(),
+        "ImagensPatologia": imagensPatologiaPaths.map((e) => e.split('/').last).toList(),
+        "abrigos": abrigos, // 🔹 Adicionado `abrigos` ao JSON final
+      };
 
-      // Adicionar arquivos imgBlob
-      for (String imagePath in imgBlobPaths) {
-        request.files.add(await http.MultipartFile.fromPath('imgBlob', imagePath));
-      }
+      // 🔹 Printar JSON antes do envio (debug)
+      print('📌 JSON Enviado:');
+      print(JsonEncoder.withIndent('  ').convert(bodyJson));
 
-      // Adicionar arquivos ImagensPatologia
-      for (String imagePath in imagensPatologiaPaths) {
-        request.files.add(await http.MultipartFile.fromPath('ImagensPatologia', imagePath));
-      }
-
-      request.headers['Authorization'] = 'Bearer $token'; // Adiciona o token no cabeçalho
+      // Adicionar os campos ao request
+      request.fields['data'] = jsonEncode(bodyJson);
+      request.headers['Authorization'] = 'Bearer $token';
 
       final response = await request.send();
       if (response.statusCode == 201) {
-        print('Ponto criado com sucesso!');
+        print('✅ Ponto criado com sucesso!');
         return true;
       } else {
-        print('Erro ao criar o ponto: ${response.statusCode}');
+        print('❌ Erro ao criar o ponto: ${response.statusCode}');
         return false;
       }
     } catch (error) {
-      print('Erro na criação do ponto: $error');
+      print('❌ Erro na criação do ponto: $error');
       return false;
     }
   }
