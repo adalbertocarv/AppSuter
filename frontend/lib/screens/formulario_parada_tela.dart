@@ -1,11 +1,12 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../providers/ponto_parada_provider.dart';
+import '../services/login_service.dart';
 
 class FormularioParadaTela extends StatefulWidget {
   final LatLng latLng;
@@ -40,6 +41,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   DateTime _dataVisita = DateTime.now();
   TimeOfDay _horaVisita = TimeOfDay.now();
   List<Map<String, dynamic>> _abrigos = [];
+  String? _tipoParadaSelecionado;
   final MapController _mapController = MapController();
   final List<int> _idTiposAbrigos = [
     19,
@@ -108,6 +110,10 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     20: "assets/images/abrigo_atipico.png",
   };
 
+  final _tileProvider = FMTCTileProvider(
+    stores: const {'mapStore': BrowseStoreStrategy.readUpdateCreate},
+  );
+
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -145,9 +151,12 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   }
 
   Future<void> _carregarDadosUsuario() async {
-    setState(() {
-      _idUsuario = 1;
-    });
+    final id = await LoginService.getUsuarioId();
+    if (mounted) {
+      setState(() {
+        _idUsuario = id;
+      });
+    }
   }
 
   void _adicionarAbrigo() {
@@ -314,6 +323,27 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       return;
     }
 
+    // Validação dos tipos de abrigo selecionados
+    final abrigosInvalidos = _abrigos.where((abrigo) =>
+    abrigo["idTipoAbrigo"] == null ||
+        !_mapIdTipoAbrigo.containsKey(abrigo["idTipoAbrigo"]));
+    if (abrigosInvalidos.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Campo obrigatório"),
+          content: const Text("Você precisa selecionar o tipo de Parada/Abrigo para cadastrar um ponto de parada."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     // Construção do objeto parada
     final parada = {
       "idUsuario": _idUsuario!,
@@ -322,7 +352,9 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       "longitude": widget.latLng.longitude,
       "LinhaEscolares": _linhaEscolares,
       "LinhaStpc": _linhaStpc,
-      "idTipoAbrigo": _abrigos.isNotEmpty ? _abrigos[0]["idTipoAbrigo"] : null,
+      "idTipoAbrigo": (_abrigos.isNotEmpty && _abrigos[0]["idTipoAbrigo"] is int)
+          ? _abrigos[0]["idTipoAbrigo"]
+          : 0, // exigir parada
       "latitudeInterpolado": widget.latLongInterpolado.latitude,
       "longitudeInterpolado": widget.latLongInterpolado.longitude,
       "DataVisita": _dataVisita.toIso8601String(),
@@ -419,21 +451,88 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Título
-                const Center(
-                  child: Text(
-                    "Formulário da Parada",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        color: Colors.white,
+                        icon: const Icon(Icons.arrow_back_ios_new),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
                     ),
-                  ),
+                    const Text(
+                      "Formulário da Parada",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
 
                 _buildTextField("Endereço", _addressController),
 
-                const SizedBox(height: 10),
+
+                const SizedBox(height: 20),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12), // Borda arredondada de 12
+                  child: SizedBox(
+                    height: 300,
+                    width: 400,
+                    child: FlutterMap(
+                      options: MapOptions(
+                          initialCenter: widget.latLng,
+                          initialZoom: 16.0,
+                          interactionOptions: const InteractionOptions(
+                              flags: InteractiveFlag.all & ~InteractiveFlag.rotate
+                          )
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.ponto.parada.frontend',
+                          tileProvider: _tileProvider,
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: widget.latLng,
+                              width: 45.0,
+                              height: 45.0,
+                              child: Transform.translate(
+                                offset: const Offset(0, -22),
+                                child: const Icon(
+                                  Icons.location_pin,
+                                  color: Colors.red,
+                                  size: 45,
+                                ),
+                              ),
+                            ),
+                            if (_pontoSelecionado != null)
+                              Marker(
+                                point: _pontoSelecionado!,
+                                width: 45.0,
+                                height: 45.0,
+                                child: Transform.translate(
+                                  offset: const Offset(0, -22),
+                                  child: const Icon(
+                                    Icons.location_on,
+                                    color: Colors.greenAccent,
+                                    size: 45,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 _buildSwitch("Linhas Escolares", _linhaEscolares, (value) {
                   setState(() => _linhaEscolares = value);
@@ -496,48 +595,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 20),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12), // Borda arredondada de 12
-                  child: SizedBox(
-                    height: 300,
-                    width: 400,
-                    child: FlutterMap(
-                      options: MapOptions(
-                        initialCenter: LatLng(-15.7950, -47.8820),
-                        initialZoom: 10.0,
-                          interactionOptions: const InteractionOptions(
-                              flags: InteractiveFlag.all & ~InteractiveFlag.rotate
-                          )
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                          subdomains: ['a', 'b', 'c'],
-                        ),
-                        MarkerLayer(markers: [
-                          if (_pontoSelecionado != null)
-                          Marker(
-                            point: _pontoSelecionado!,
-                            width: 45.0,
-                            height: 45.0,
-                            child: Transform.translate(
-                              offset: const Offset(0, -22),
-                              child: const Icon(
-                                Icons.location_on,
-                                color: Colors.greenAccent,
-                                size: 45,
-                              ),
-                            ),
-                          ),
-                        ]
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 20)
               ],
             ),
           ),

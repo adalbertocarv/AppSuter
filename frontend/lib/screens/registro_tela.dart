@@ -42,29 +42,8 @@ class _RegistroTelaState extends State<RegistroTela> {
     for (var point in points) {
       // 🔹 Criar lista de abrigos formatada corretamente
       final List<Map<String, dynamic>> abrigosFormatados =
-          (point['abrigos'] as List<dynamic>?)
-              ?.map((abrigo) => {
-            "idTipoAbrigo": abrigo["idTipoAbrigo"] as int? ?? 0,
-            "imgBlob": (abrigo["imgBlobPaths"] as List<dynamic>?)
-                ?.map((path) => path.toString().split('/').last)
-                .toList() ??
-                [],
-            "Patologia": abrigo["temPatologia"] as bool? ?? false,
-            "patologias": (abrigo["temPatologia"] as bool? ?? false) &&
-                (abrigo["imagensPatologiaPaths"]?.isNotEmpty ?? false)
-                ? [
-              {
-                "ImagensPatologia":
-                (abrigo["imagensPatologiaPaths"] as List<dynamic>?)
-                    ?.map((path) => path.toString().split('/').last)
-                    .toList() ??
-                    []
-              }
-            ]
-                : [],
-          })
-              .toList() ??
-              [];
+      List<Map<String, dynamic>>.from(point['abrigos'] ?? []);
+
 
       final sucesso = await PontoParadaService.criarPonto(
         idUsuario: point['idUsuario'] as int,
@@ -79,16 +58,9 @@ class _RegistroTelaState extends State<RegistroTela> {
         pisoTatil: point['PisoTatil'] as bool? ?? false,
         rampa: point['Rampa'] as bool? ?? false,
         patologia: point['Patologia'] as bool? ?? false,
-        idTipoAbrigo: (point['abrigos'] != null && (point['abrigos'] as List).isNotEmpty)
-            ? (point['abrigos'][0]['idTipoAbrigo'] as int? ?? 0)
-            : 0,
-        imgBlobPaths: (point['abrigos'] != null && (point['abrigos'] as List).isNotEmpty)
-            ? List<String>.from(point['abrigos'][0]['imgBlobPaths'] ?? [])
-            : [],
-        imagensPatologiaPaths: (point['abrigos'] != null && (point['abrigos'] as List).isNotEmpty)
-            ? List<String>.from(point['abrigos'][0]['imagensPatologiaPaths'] ?? [])
-            : [],
-        abrigos: abrigosFormatados, // 🔹 Agora enviamos `abrigos` corretamente!
+        baia: point['Baia'] as bool? ?? false,
+        abrigos: abrigosFormatados,
+
       );
 
       if (!sucesso) {

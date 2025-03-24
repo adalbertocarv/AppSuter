@@ -14,7 +14,7 @@ class LoginService {
         "nome": nome,
         "matricula": matricula,
       }),
-    );
+    ).timeout(const Duration(seconds: 15));
 
     if (response.statusCode == 201) {
       final json = jsonDecode(response.body);
@@ -24,8 +24,11 @@ class LoginService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('idUsuario', idUsuario);
 
+      print('ID do usuário logado: $idUsuario');
+
       return idUsuario;
-    } else {
+    }
+    else {
 
       return null; // Login falhou
     }

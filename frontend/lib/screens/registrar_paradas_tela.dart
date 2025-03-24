@@ -37,7 +37,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
   EnderecoService(); // Serviço de busca de endereço
 
   // URLs dos tiles
-  final String openStreetMapUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  final String openStreetMapUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   final String esriSatelliteUrl = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
 
 
@@ -567,26 +567,90 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
                   ? _confirmarPonto
                   : _confirmarVia),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(5),
+                  borderRadius: BorderRadius.circular(30),
                 ),
-                backgroundColor: _viaConfirmada
-                    ? Colors.green
-                    : (_pontoParadaConfirmado == null
-                    ? Colors.blue
-                    : Colors.orange),
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
               ),
-              child: Text(
-                _viaConfirmada
-                    ? 'Cadastrar Ponto de Parada'
-                    : (_pontoParadaConfirmado == null
-                    ? 'Confirmar Ponto Parada'
-                    : 'Confirmar Via da Parada'),
-                style: const TextStyle(color: Colors.white),
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      _viaConfirmada
+                          ? const Color(0xFF34C759)
+                          : (_pontoParadaConfirmado == null
+                          ? Colors.blue
+                          : Colors.orange),
+                      Colors.green.shade600,
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Container(
+                  height: 56,
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _viaConfirmada
+                            ? 'Cadastrar Ponto de Parada'
+                            : (_pontoParadaConfirmado == null
+                            ? 'Confirmar Ponto Parada'
+                            : 'Confirmar Via da Parada'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.white,
+                        child: Icon(Icons.arrow_forward, size: 16, color: Colors.green),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
+          if (_pontoParadaConfirmado != null && !_viaConfirmada)
+            Positioned(
+              bottom: 140,
+              left: 16,
+              right: 16,
+              child: ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _pontoInterpolado = const LatLng(0, 0);
+                    _viaConfirmada = true;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade700,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: const Text(
+                  'Não há Vias',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
           if (_pontoSelecionado != null &&
               _pontoParadaConfirmado != null &&
               _pontoInterpolado != null &&

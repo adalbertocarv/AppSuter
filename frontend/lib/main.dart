@@ -16,13 +16,12 @@ Future<void> main() async {
   // Criação de um store de tiles chamado 'mapStore'
   await const FMTCStore('mapStore').manage.create();
 
-  // Limpar o token ao iniciar o app
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.remove('token'); // Remove o token armazenado
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => PointProvider()..carregarPontos()), // Garante que as paradas sejam carregadas
+        ChangeNotifierProvider(
+          create: (_) => PointProvider()..carregarPontos(),
+        ),
       ],
       child: const PontoParada(),
     ),
@@ -38,8 +37,8 @@ class PontoParada extends StatelessWidget {
       debugShowCheckedModeBanner: false, // Desativa o banner de debug
       title: 'SEMOB - Ponto Certo',
       theme: ThemeData(
-        colorScheme:  ColorScheme.light(
-          primary: Colors.blue.shade900, // Cor primária
+        colorScheme: ColorScheme.light(
+          primary: Colors.blue.shade900,// Cor primária
           secondary: Colors.blue.shade700, // Cor de destaque
         ),
       ),

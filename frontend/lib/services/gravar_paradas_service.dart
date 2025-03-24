@@ -1,15 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
 class PontoParadaService {
-  /// Obter o token JWT armazenado no SharedPreferences
-  static Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
-  }
-
-  /// Envia os dados de um ponto ao backend
   static Future<bool> criarPonto({
     required int idUsuario,
     required String endereco,
@@ -23,55 +16,74 @@ class PontoParadaService {
     required bool pisoTatil,
     required bool rampa,
     required bool patologia,
-    required int idTipoAbrigo,
-    required List<String> imgBlobPaths,
-    required List<String> imagensPatologiaPaths,
-    required List<Map<String, dynamic>> abrigos, // 🔹 Adicionado o parâmetro `abrigos`
+    required bool baia,
+    required List<Map<String, dynamic>> abrigos,
   }) async {
     try {
-      final token = await _getToken();
-      if (token == null) {
-        print('❌ Token de autenticação não encontrado.');
-        return false;
-      }
+      final url = Uri.parse('http://10.233.144.111:3000/pontos/criar');
 
-      final url = Uri.parse('http://seu_backend.com/paradas/criar');
-      final request = http.MultipartRequest('POST', url);
+      final List<Map<String, dynamic>> abrigosFormatados = abrigos.map((abrigo) {
+        final imagensAbrigo = List<String>.from(abrigo["imgBlobPaths"] ?? []).map((path) {
+          final bytes = File(path).readAsBytesSync();
+          return {"abrigo_img": base64Encode(bytes)};
+        }).toList();
 
-      // Criando o body JSON
+        final List<Map<String, dynamic>> patologias = [];
+        if (abrigo["temPatologia"] == true) {
+          final imagensPatologia = List<String>.from(abrigo["imagensPatologiaPaths"] ?? []).map((path) {
+            final bytes = File(path).readAsBytesSync();
+            return {"patologias_img": base64Encode(bytes)};
+          }).toList();
+
+          final int idTipoPatologia = abrigo["idTipoPatologia"] ?? 1;
+
+          patologias.add({
+            "id_tipo_patologia": idTipoPatologia,
+            "imagens": imagensPatologia,
+          });
+        }
+
+        return {
+          "id_tipo_abrigo": abrigo["idTipoAbrigo"],
+          "imagens": imagensAbrigo,
+          "patologias": patologias,
+        };
+      }).toList();
+
       final Map<String, dynamic> bodyJson = {
-        "idUsuario": idUsuario,
+        "id_usuario": idUsuario,
         "endereco": endereco,
         "latitude": latitude,
         "longitude": longitude,
-        "LinhaEscolares": linhaEscolares,
-        "LinhaStpc": linhaStpc,
+        "linha_escolar": linhaEscolares,
+        "linha_stpc": linhaStpc,
         "latitudeInterpolado": latitudeInterpolado,
         "longitudeInterpolado": longitudeInterpolado,
-        "DataVisita": dataVisita,
-        "PisoTatil": pisoTatil,
-        "Rampa": rampa,
-        "Patologia": patologia,
-        "idTipoAbrigo": idTipoAbrigo,
-        "imgBlob": imgBlobPaths.map((e) => e.split('/').last).toList(),
-        "ImagensPatologia": imagensPatologiaPaths.map((e) => e.split('/').last).toList(),
-        "abrigos": abrigos, // 🔹 Adicionado `abrigos` ao JSON final
+        "data_visita": dataVisita,
+        "baia": baia,
+        "rampa_acessivel": rampa,
+        "piso_tatil": pisoTatil,
+        "patologia": patologia,
+        "abrigos": abrigosFormatados,
       };
 
-      // 🔹 Printar JSON antes do envio (debug)
-      print('📌 JSON Enviado:');
+      print('JSON Enviado:');
       print(JsonEncoder.withIndent('  ').convert(bodyJson));
+      print('Enviando requisição para: $url');
+      print('Tamanho do JSON: ${utf8.encode(jsonEncode(bodyJson)).length} bytes');
 
-      // Adicionar os campos ao request
-      request.fields['data'] = jsonEncode(bodyJson);
-      request.headers['Authorization'] = 'Bearer $token';
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(bodyJson),
+      ).timeout(const Duration(seconds: 15));
 
-      final response = await request.send();
       if (response.statusCode == 201) {
         print('✅ Ponto criado com sucesso!');
         return true;
       } else {
         print('❌ Erro ao criar o ponto: ${response.statusCode}');
+        print('📥 Resposta: ${await response.body}');
         return false;
       }
     } catch (error) {
@@ -79,4 +91,5 @@ class PontoParadaService {
       return false;
     }
   }
+
 }
