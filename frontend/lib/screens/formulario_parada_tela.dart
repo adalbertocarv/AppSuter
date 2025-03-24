@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
@@ -11,7 +13,8 @@ class FormularioParadaTela extends StatefulWidget {
   final Map<String, dynamic>? initialData;
   final int? index;
 
-  const FormularioParadaTela({super.key,
+  const FormularioParadaTela({
+    super.key,
     required this.latLng,
     required this.latLongInterpolado,
     this.initialData,
@@ -32,10 +35,12 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   bool _patologia = false;
   bool _temAbrigo = false;
   bool _temPatologia = false;
+  LatLng? _pontoSelecionado;
   int? _idUsuario;
   DateTime _dataVisita = DateTime.now();
   TimeOfDay _horaVisita = TimeOfDay.now();
   List<Map<String, dynamic>> _abrigos = [];
+  final MapController _mapController = MapController();
   final List<int> _idTiposAbrigos = [
     19,
     1,
@@ -79,6 +84,28 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     17: "Abrigo Tipo C",
     18: "Abrigo tradicional Niemayer",
     20: "Abrigo atípico"
+  };
+  // Mapeia cada tipo de abrigo para um asset de imagem correspondente
+  final Map<int, String> _mapaImagensAbrigos = {
+    1: "assets/images/abrigo_lele.png",
+    2: "assets/images/tipo_padrao_ii.png",
+    3: "assets/images/abrigo_oval.png",
+    4: "assets/images/abrigo_reduzido.png",
+    5: "assets/images/abrigo_canelete_90.png",
+    6: "assets/images/abrigo_cemusa_2001.png",
+    7: "assets/images/abrigo_cemusa_foster.png",
+    8: "assets/images/tipo_padrao_i.png",
+    9: "assets/images/abrigo_grimshaw.png",
+    10: "assets/images/abrigo_concretado.png",
+    11: "assets/images/abrigo_concreto_der.png",
+    12: "assets/images/abrigo_especial_aeroporto.png",
+    13: "assets/images/abrigo_metalico.png",
+    14: "assets/images/abrigo_metrobel.png",
+    15: "assets/images/abrigo_padrao_ii.png",
+    16: "assets/images/abrigo_tipo_c_novo.png",
+    17: "assets/images/abrigo_tipo_c.png",
+    18: "assets/images/abrigo_tradicional_niemeyer.png",
+    20: "assets/images/abrigo_atipico.png",
   };
 
   final ImagePicker _picker = ImagePicker();
@@ -132,6 +159,85 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
         "imagensPatologiaPaths": <String>[],
       });
     });
+  }
+
+  // Função para exibir a janela modal com o GridView de tipos de abrigo
+  void _showTipoAbrigoModal(BuildContext context, int index) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black87, // Cor de fundo
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(16),
+          height: 400, // Altura da janela modal
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Selecione o tipo de Abrigo",
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3, // Número de colunas
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 1, // Mantém os quadrados proporcionais
+                  ),
+                  itemCount: _idTiposAbrigos.length,
+                  itemBuilder: (context, i) {
+                    int tipoId = _idTiposAbrigos[i];
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _abrigos[index]["idTipoAbrigo"] = tipoId;
+                        });
+                        Navigator.pop(context); // Fecha a janela após a seleção
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blueGrey,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white, width: 1),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // 🔥 Exibe a imagem do asset correspondente ao abrigo
+                            Image.asset(
+                              _mapaImagensAbrigos[tipoId] ??
+                                  "assets/images/default.png",
+                              width: 50, // Ajuste conforme necessário
+                              height: 50,
+                              fit: BoxFit.contain,
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              _mapIdTipoAbrigo[tipoId] ?? "Desconhecido",
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 12),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _removerAbrigo(int index) {
@@ -277,7 +383,6 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       );
     }
 
-    // Aguarda o `SnackBar` antes de fechar a tela
     Future.delayed(const Duration(milliseconds: 700), () {
       if (mounted) {
         Navigator.of(context).pop();
@@ -285,28 +390,35 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     });
   }
 
+//
+// // Função auxiliar para formatar JSON no console
+//   void printJson(Map<String, dynamic> json) {
+//     const JsonEncoder encoder = JsonEncoder.withIndent("  ");
+//     print(encoder.convert(json));
+//   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue.shade900, Colors.blue.shade400],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        body: Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade900, Colors.blue.shade400],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
-    child: SafeArea(
-    child: SizedBox(
-    width: double.infinity,
-    height: double.infinity,
-    child: SingleChildScrollView(
-    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-    child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-    // Título
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          height: double.infinity,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Título
                 const Center(
                   child: Text(
                     "Formulário da Parada",
@@ -363,16 +475,16 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                 // }),
                 //
                 // if (_temAbrigo) _buildAbrigos(),
-        _buildAbrigos(),
+                _buildAbrigos(),
 
-
-        const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
                 Center(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
-                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 24),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -386,13 +498,55 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                 ),
 
                 const SizedBox(height: 20),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12), // Borda arredondada de 12
+                  child: SizedBox(
+                    height: 300,
+                    width: 400,
+                    child: FlutterMap(
+                      options: MapOptions(
+                        initialCenter: LatLng(-15.7950, -47.8820),
+                        initialZoom: 10.0,
+                          interactionOptions: const InteractionOptions(
+                              flags: InteractiveFlag.all & ~InteractiveFlag.rotate
+                          )
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                          subdomains: ['a', 'b', 'c'],
+                        ),
+                        MarkerLayer(markers: [
+                          if (_pontoSelecionado != null)
+                          Marker(
+                            point: _pontoSelecionado!,
+                            width: 45.0,
+                            height: 45.0,
+                            child: Transform.translate(
+                              offset: const Offset(0, -22),
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.greenAccent,
+                                size: 45,
+                              ),
+                            ),
+                          ),
+                        ]
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
         ),
       ),
-    ));
+    )
+    );
   }
+
   /// Switch to toggle "Possui Patologia?"
   Widget _buildSwitch(String title, bool value, Function(bool) onChanged) {
     return SwitchListTile(
@@ -428,10 +582,12 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
       ),
     );
   }
+
   /// Widget para exibir e selecionar a data e hora
   Widget _buildDateTile(BuildContext context) {
     return Card(
@@ -442,7 +598,8 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
         side: const BorderSide(color: Colors.white, width: 1),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         title: const Text(
           'Data e Hora da Visita',
           style: TextStyle(
@@ -453,10 +610,10 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
         ),
         subtitle: Text(
           '${_dataVisita.day.toString().padLeft(2, '0')}/'
-              '${_dataVisita.month.toString().padLeft(2, '0')}/'
-              '${_dataVisita.year} às '
-              '${_horaVisita.hour.toString().padLeft(2, '0')}:'
-              '${_horaVisita.minute.toString().padLeft(2, '0')}',
+          '${_dataVisita.month.toString().padLeft(2, '0')}/'
+          '${_dataVisita.year} às '
+          '${_horaVisita.hour.toString().padLeft(2, '0')}:'
+          '${_horaVisita.minute.toString().padLeft(2, '0')}',
           style: const TextStyle(
             fontSize: 14,
             color: Colors.white70,
@@ -467,7 +624,6 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       ),
     );
   }
-
 
   Widget _buildAbrigos() {
     return Column(
@@ -490,33 +646,32 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                   // 🔻 Dropdown para Tipo de Abrigo
                   const Text(
                     "Tipo da parada/Abrigo",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 5),
-                  DropdownButtonFormField<int>(
-                    value: _abrigos[i]["idTipoAbrigo"],
-                    dropdownColor: Colors.black87,
-                    items: _idTiposAbrigos.map((id) {
-                      return DropdownMenuItem<int>(
-                        value: id,
-                        child: Text(
-                          _mapIdTipoAbrigo[id] ?? 'Desconhecido',
+
+// Botão que abre a janela de seleção
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black.withOpacity(0.2),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () =>
+                        _showTipoAbrigoModal(context, i), // Chama o modal
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.home, color: Colors.white),
+                        const SizedBox(width: 10),
+                        Text(
+                          _mapIdTipoAbrigo[_abrigos[i]["idTipoAbrigo"]] ??
+                              "Selecione o tipo",
                           style: const TextStyle(color: Colors.white),
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _abrigos[i]["idTipoAbrigo"] = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.black.withValues(alpha: 0.2),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      ],
                     ),
                   ),
 
@@ -527,16 +682,22 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       ElevatedButton.icon(
-                        onPressed: () => _selecionarImagemDaGaleria(_abrigos[i]["imgBlobPaths"]),
+                        onPressed: () => _selecionarImagemDaGaleria(
+                            _abrigos[i]["imgBlobPaths"]),
                         icon: const Icon(Icons.image, color: Colors.white),
-                        label: const Text("Galeria", style: TextStyle(color: Colors.white)),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade800),
+                        label: const Text("Galeria",
+                            style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue.shade800),
                       ),
                       ElevatedButton.icon(
-                        onPressed: () => _tirarFotoComCamera(_abrigos[i]["imgBlobPaths"]),
+                        onPressed: () =>
+                            _tirarFotoComCamera(_abrigos[i]["imgBlobPaths"]),
                         icon: const Icon(Icons.camera_alt, color: Colors.white),
-                        label: const Text("Câmera", style: TextStyle(color: Colors.white)),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade800),
+                        label: const Text("Câmera",
+                            style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue.shade800),
                       ),
                     ],
                   ),
@@ -544,7 +705,8 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                   const SizedBox(height: 10),
 
                   // 🔻 Exibição de imagens (CORRIGIDO PARA NÃO DESAPARECER)
-                  if (_abrigos[i]["imgBlobPaths"] != null && _abrigos[i]["imgBlobPaths"].isNotEmpty)
+                  if (_abrigos[i]["imgBlobPaths"] != null &&
+                      _abrigos[i]["imgBlobPaths"].isNotEmpty)
                     SizedBox(
                       height: 100,
                       child: ListView.builder(
@@ -566,12 +728,15 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                                 top: 2,
                                 right: 2,
                                 child: IconButton(
-                                  icon: const Icon(Icons.close, color: Colors.red),
+                                  icon: const Icon(Icons.close,
+                                      color: Colors.red),
                                   onPressed: () {
                                     setState(() {
                                       _abrigos[i]["imgBlobPaths"] =
-                                      List<String>.from(_abrigos[i]["imgBlobPaths"]);
-                                      _abrigos[i]["imgBlobPaths"].removeAt(index);
+                                          List<String>.from(
+                                              _abrigos[i]["imgBlobPaths"]);
+                                      _abrigos[i]["imgBlobPaths"]
+                                          .removeAt(index);
                                     });
                                   },
                                 ),
@@ -586,8 +751,10 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
 
                   //  Switch para indicar se possui patologia
                   SwitchListTile(
-                    title: const Text("Possui Patologia?", style: TextStyle(color: Colors.white)),
-                    value: _abrigos[i]["temPatologia"] ?? false, // 🔹 Usa o valor do abrigo específico
+                    title: const Text("Possui Patologia?",
+                        style: TextStyle(color: Colors.white)),
+                    value: _abrigos[i]["temPatologia"] ??
+                        false, // 🔹 Usa o valor do abrigo específico
                     activeColor: Colors.orange,
                     onChanged: (value) {
                       setState(() {
@@ -603,16 +770,23 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         ElevatedButton.icon(
-                          onPressed: () => _selecionarImagemDaGaleria(_abrigos[i]["imagensPatologiaPaths"]),
+                          onPressed: () => _selecionarImagemDaGaleria(
+                              _abrigos[i]["imagensPatologiaPaths"]),
                           icon: const Icon(Icons.image, color: Colors.white),
-                          label: const Text("Galeria", style: TextStyle(color: Colors.white)),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade700),
+                          label: const Text("Galeria",
+                              style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange.shade700),
                         ),
                         ElevatedButton.icon(
-                          onPressed: () => _tirarFotoComCamera(_abrigos[i]["imagensPatologiaPaths"]),
-                          icon: const Icon(Icons.camera_alt, color: Colors.white),
-                          label: const Text("Câmera", style: TextStyle(color: Colors.white)),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade700),
+                          onPressed: () => _tirarFotoComCamera(
+                              _abrigos[i]["imagensPatologiaPaths"]),
+                          icon:
+                              const Icon(Icons.camera_alt, color: Colors.white),
+                          label: const Text("Câmera",
+                              style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange.shade700),
                         ),
                       ],
                     ),
@@ -620,19 +794,22 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                     const SizedBox(height: 10),
 
                     // 🔹 Exibir imagens da patologia (CORRIGIDO)
-                    if (_abrigos[i]["imagensPatologiaPaths"] != null && _abrigos[i]["imagensPatologiaPaths"].isNotEmpty)
+                    if (_abrigos[i]["imagensPatologiaPaths"] != null &&
+                        _abrigos[i]["imagensPatologiaPaths"].isNotEmpty)
                       SizedBox(
                         height: 100,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
-                          itemCount: _abrigos[i]["imagensPatologiaPaths"].length,
+                          itemCount:
+                              _abrigos[i]["imagensPatologiaPaths"].length,
                           itemBuilder: (context, index) {
                             return Stack(
                               children: [
                                 Padding(
                                   padding: const EdgeInsets.all(4.0),
                                   child: Image.file(
-                                    File(_abrigos[i]["imagensPatologiaPaths"][index]),
+                                    File(_abrigos[i]["imagensPatologiaPaths"]
+                                        [index]),
                                     width: 100,
                                     height: 100,
                                     fit: BoxFit.cover,
@@ -642,7 +819,8 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                                   top: 2,
                                   right: 2,
                                   child: IconButton(
-                                    icon: const Icon(Icons.close, color: Colors.red),
+                                    icon: const Icon(Icons.close,
+                                        color: Colors.red),
                                     onPressed: () => _removerImagem(
                                       index,
                                       _abrigos[i]["imagensPatologiaPaths"],
@@ -678,7 +856,8 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green.shade700,
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: _adicionarAbrigo,
             child: const Text(

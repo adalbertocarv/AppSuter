@@ -85,6 +85,25 @@ flutter:
     - assets/images/paradaComFundo.png
     - assets/tab_rede_vias.geojson
     - assets/images/user_location.png
+    - assets/images/abrigo_lele.png
+    - assets/images/abrigo_padrao_ii.png
+    - assets/images/abrigo_oval.png
+    - assets/images/abrigo_reduzido.png
+    - assets/images/abrigo_canelete_90.png
+    - assets/images/abrigo_cemusa_2001.png
+    - assets/images/abrigo_cemusa_foster.png
+    - assets/images/abrigo_padrao_i.png
+    - assets/images/abrigo_grimshaw.png
+    - assets/images/abrigo_concretado.png
+    - assets/images/abrigo_concreto_der.png
+    - assets/images/abrigo_especial_aeroporto.png
+    - assets/images/abrigo_metalico.png
+    - assets/images/abrigo_metrobel.png
+    - assets/images/abrigo_padrao_ii.png
+    - assets/images/abrigo_tipo_c_novo.png
+    - assets/images/abrigo_tipo_c.png
+    - assets/images/abrigo_tradicional_niemeyer.png
+    - assets/images/abrigo_atipico.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

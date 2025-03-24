@@ -43,15 +43,15 @@ class PontoParada extends StatelessWidget {
           secondary: Colors.blue.shade700, // Cor de destaque
         ),
       ),
-      home: FutureBuilder<String?>(
-        future: LoginService.getToken(),
+      home: FutureBuilder<int?>(
+        future: LoginService.getUsuarioId(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasData && snapshot.data != null) {
-            return  const TelaInicio();
+            return const TelaInicio();
           } else {
-            return  const LoginScreen(); //login
+            return const LoginScreen();
           }
         },
       ),
