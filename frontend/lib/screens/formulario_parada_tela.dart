@@ -46,7 +46,6 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   final List<int> _idTiposAbrigos = [
     19,
     1,
-    2,
     3,
     4,
     5,
@@ -63,18 +62,19 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     16,
     17,
     18,
-    20
+    20,
+    21,
+    22
   ];
   final Map<int, String> _mapIdTipoAbrigo = {
     19: "Ponto Habitual",
     1: "Abrigo Lelé",
-    2: "Tipo Padrão II",
     3: "Abrigo Oval",
     4: "Abrigo Reduzido",
     5: "Abrigo Canelete 90",
     6: "Abrigo Cemusa 2001",
     7: "Abrigo Cemusa Foster",
-    8: "Tipo Padrão I",
+    8: "Abrigo Padrão I",
     9: "Abrigo Grimshaw",
     10: "Abrigo Concretado in loco",
     11: "Abrigo Concreto DER",
@@ -85,18 +85,21 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     16: "Abrigo Tipo C novo",
     17: "Abrigo Tipo C",
     18: "Abrigo tradicional Niemayer",
-    20: "Abrigo atípico"
+    20: "Abrigo atípico",
+    21: "Abrigo DNIT",
+    22: "Placa de Sinalização"
   };
   // Mapeia cada tipo de abrigo para um asset de imagem correspondente
   final Map<int, String> _mapaImagensAbrigos = {
+    19: "assets/images/ponto_habitual.jpg",
     1: "assets/images/abrigo_lele.png",
-    2: "assets/images/tipo_padrao_ii.png",
+    2: "assets/images/abrigo_padrao_ii.png",
     3: "assets/images/abrigo_oval.png",
     4: "assets/images/abrigo_reduzido.png",
     5: "assets/images/abrigo_canelete_90.png",
     6: "assets/images/abrigo_cemusa_2001.png",
     7: "assets/images/abrigo_cemusa_foster.png",
-    8: "assets/images/tipo_padrao_i.png",
+    8: "assets/images/abrigo_padrao_i.png",
     9: "assets/images/abrigo_grimshaw.png",
     10: "assets/images/abrigo_concretado.png",
     11: "assets/images/abrigo_concreto_der.png",
@@ -108,6 +111,8 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     17: "assets/images/abrigo_tipo_c.png",
     18: "assets/images/abrigo_tradicional_niemeyer.png",
     20: "assets/images/abrigo_atipico.png",
+    21: "assets/images/abrigo_dnit.png",
+    22: "assets/images/ponto_sinalizacao.png",
   };
 
   final _tileProvider = FMTCTileProvider(
@@ -311,11 +316,11 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
     final pointProvider = Provider.of<PointProvider>(context, listen: false);
 
     // Validação dos campos obrigatórios
-    if (_idUsuario == null || _addressController.text.isEmpty) {
+    if (_addressController.text.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Erro: usuário ou endereço inválido!'),
+            content: Text('Endereço Vazio! Preencha com o endereço.'),
             backgroundColor: Colors.red,
           ),
         );

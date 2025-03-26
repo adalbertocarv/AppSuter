@@ -1,10 +1,11 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../models/baseUrl_model.dart';
 import '../models/paradas_model.dart';
 
 class ParadasService {
   Future<List<Paradas>> procurarParadas() async {
-    final url = Uri.parse("https://mobilidade.semob.df.gov.br/parada");
+    final url = Uri.parse("${caminhoBackend.baseUrl}/paradas/antigas");
 
     final response = await http.get(
       url,

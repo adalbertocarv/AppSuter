@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/login_service.dart';
 import 'tela_inicio.dart';
-import 'rec_senha.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -15,6 +16,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _matriculaController = TextEditingController();
   bool _isLoading = false;
   bool? isChecked = false; // Checkbox state
+  final _matriculaFormatter = MaskTextInputFormatter(
+    mask: '###.###-#',
+    filter: {"#": RegExp(r'[0-9]')},
+  );
 
   // Function for login
   void _login() async {
@@ -23,23 +28,24 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     final nome = _nomeController.text.trim();
-    final matricula = _matriculaController.text.trim();
+    final matricula = _matriculaFormatter.getUnmaskedText();
 
-    final idUsuario = await LoginService.login(nome, matricula);
+    final result = await LoginService.login(nome, matricula);
 
     setState(() {
       _isLoading = false;
     });
 
-    if (idUsuario != null) {
+    if (result.idUsuario != null) {
       _showSnackBar(context, 'Autenticado com sucesso!', Colors.green);
-
       Future.delayed(const Duration(milliseconds: 500), () {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const TelaInicio()),
         );
       });
+    } else if (result.timeout) {
+      _showSnackBar(context, 'Tempo limite. Verifique sua conexão.', Colors.orange);
     } else {
       _showSnackBar(context, 'Login falhou. Verifique suas credenciais.', Colors.red);
     }
@@ -57,11 +63,18 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, bool isPassword) {
+  Widget _buildTextField(
+      String label,
+      TextEditingController controller,
+      bool isPassword, {
+        TextInputType? keyboardType,
+        List<TextInputFormatter>? inputFormatters,
+      }) {
     return TextFormField(
       controller: controller,
       obscureText: isPassword,
-      keyboardType: TextInputType.text,
+      keyboardType: keyboardType ?? TextInputType.text,
+      inputFormatters: inputFormatters,
       style: const TextStyle(fontSize: 18),
       decoration: InputDecoration(
         labelText: label,
@@ -73,6 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -122,10 +136,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 20),
                       _buildTextField('Nome completo', _nomeController, false),
                       const SizedBox(height: 25),
-                      _buildTextField('Matrícula', _matriculaController, false),
+                      _buildTextField(
+                        'Matrícula',
+                        _matriculaController,
+                        false,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [_matriculaFormatter],
+                      ),
                       const SizedBox(height: 15),
-                      _LembreDeMimAgora(),
-                      const SizedBox(height: 30),
+                      //_LembreDeMimAgora(),
+                      //const SizedBox(height: 30),
                       _isLoading
                           ? const CircularProgressIndicator()
                           : _buildLoginButton(),
@@ -139,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
+/*
   Widget _LembreDeMimAgora() {
     return Wrap(
       spacing: 10, // Space between widgets
@@ -179,6 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
+*/
 
   Widget _buildLoginButton() {
     return ElevatedButton(
