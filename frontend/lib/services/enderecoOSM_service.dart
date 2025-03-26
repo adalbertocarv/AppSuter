@@ -9,7 +9,8 @@ class EnderecoService {
 
     final response = await http.get(Uri.parse(url), headers: {
       'User-Agent': 'com.ponto.parada.frontend',
-    });
+    }      ).timeout(const Duration(seconds: 8));
+
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);

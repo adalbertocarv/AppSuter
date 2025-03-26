@@ -132,3 +132,27 @@ class PointProvider with ChangeNotifier {
     prefs.remove('points');
   }
 }
+
+
+//envio segundo plano
+class EnvioStatus with ChangeNotifier {
+  double progresso = 0.0;
+  bool emExecucao = false;
+
+  void atualizarProgresso(double value) {
+    progresso = value;
+    notifyListeners();
+  }
+
+  void iniciarEnvio() {
+    emExecucao = true;
+    progresso = 0.0;
+    notifyListeners();
+  }
+
+  void finalizarEnvio() {
+    emExecucao = false;
+    progresso = 0.0;
+    notifyListeners();
+  }
+}

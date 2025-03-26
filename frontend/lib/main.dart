@@ -19,9 +19,8 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => PointProvider()..carregarPontos(),
-        ),
+        ChangeNotifierProvider(create: (_) => PointProvider()..carregarPontos()),
+        ChangeNotifierProvider(create: (_) => EnvioStatus()),
       ],
       child: const PontoParada(),
     ),
@@ -48,7 +47,7 @@ class PontoParada extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasData && snapshot.data != null) {
-            return const TelaInicio();
+            return const TelaInicio();// TelaInicio
           } else {
             return const LoginScreen();
           }

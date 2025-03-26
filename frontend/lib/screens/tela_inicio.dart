@@ -43,10 +43,11 @@ class _HomeScreenState extends State<TelaInicio> {
       appBar: AppBar(
         backgroundColor: Colors.blue[900],
         centerTitle: true,
-        title: const Text('Paradas e Registro'),
+        title: const Text('Paradas e Registros'),
         titleTextStyle: const TextStyle(
           color: Colors.white,
-          fontSize: 20,
+          fontSize: 22,
+          fontWeight: FontWeight.bold
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
