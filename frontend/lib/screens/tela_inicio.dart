@@ -1,6 +1,6 @@
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
-import 'paradas_banco_tela.dart';
+import 'paradas_bd_tela.dart';
 import 'registrar_paradas_tela.dart';
 import 'registro_tela.dart';
 import '../services/login_service.dart';

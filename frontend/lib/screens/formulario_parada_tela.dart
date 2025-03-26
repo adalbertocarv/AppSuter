@@ -555,7 +555,6 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    fontStyle: FontStyle.italic,
                     color: Colors.white,
                   ),
                 ),

@@ -83,9 +83,11 @@ class _ParadasBancoState extends State<ParadasBanco> {
     }).toList();
 
     return Scaffold(
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
+      // body: _isLoading
+      //     ? const Center(child: CircularProgressIndicator())
+      //     :
+      body:
+      Stack(
         children: [
           FlutterMap(
             options: MapOptions(

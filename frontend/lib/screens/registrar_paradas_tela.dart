@@ -154,6 +154,47 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
     }
   }
 
+  Future<void> _atualizarLocalizacaoEVias() async {
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      final novaLocalizacao = LatLng(position.latitude, position.longitude);
+
+      if (!mounted) return;
+
+      setState(() {
+        _userLocation = novaLocalizacao;
+      });
+
+      // Mover o mapa (opcional)
+      _mapController.move(novaLocalizacao, 17);
+
+      // Agora sim: chamar a função depois de atualizar o estado
+      await _carregarViasComLocalizacaoAtual();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erro ao atualizar localização.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  bool _isAtualizando = false;
+
+  void _atualizarLocalizacaoComAnimacao() async {
+    setState(() => _isAtualizando = true);
+
+    await _atualizarLocalizacaoEVias();
+
+    setState(() => _isAtualizando = false);
+  }
+
+
   Future<void> _confirmarPonto() async {
     if (_pontoSelecionado == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -702,15 +743,35 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
             top: 140,
             right: 16,
             child: FloatingActionButton(
-              onPressed: () {
-                setState(() {
-                  showSatellite = !showSatellite; // Alterna exibição do satélite
-                });
-              },
-              child: Icon(showSatellite ? Icons.map : Icons.satellite),
-              tooltip: 'Alternar entre camadas de mapa'
+                onPressed: () {
+                  setState(() {
+                    showSatellite = !showSatellite; // Alterna exibição do satélite
+                  });
+                },
+                child: Icon(showSatellite ? Icons.map : Icons.satellite),
+                tooltip: 'Alternar entre camadas de mapa'
             ),
           ),
+          Positioned(
+            top: 200,
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: _isAtualizando ? null : _atualizarLocalizacaoComAnimacao,
+              backgroundColor: Colors.blue[900],
+              tooltip: 'Atualizar localização e vias',
+              child: _isAtualizando
+                  ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+                  : const Icon(Icons.refresh),
+            ),
+          ),
+
         ],
       ),
     );
