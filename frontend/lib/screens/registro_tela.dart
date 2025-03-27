@@ -240,9 +240,11 @@ class _RegistroTelaState extends State<RegistroTela> {
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Há Abrigo: ${(point['haAbrigo'] ?? false)
-                                  ? 'Sim'
-                                  : 'Não'}'),
+                              Text(
+                                'Há Abrigo: ${(point['idTipoAbrigo'] == 19 || !(point['haAbrigo'] ?? false))
+                                    ? 'Não'
+                                    : 'Sim'}',
+                              ),
                               if ((point['haAbrigo'] ?? false) &&
                                   point['tipoAbrigo'] != null)
                                 Text('Tipo de Abrigo: ${point['tipoAbrigo']}'),

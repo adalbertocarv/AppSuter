@@ -8,7 +8,12 @@ import 'package:provider/provider.dart';
 import '../models/paradas_novas.dart';
 import '../providers/ponto_parada_provider.dart';
 import '../services/paradas_bd.dart';
+import '../utils/EPGS21983_latlong.dart';
 import '../widgets/poppup_parada.dart';
+import '../models/ra_model.dart';
+import '../models/bacias_model.dart';
+import '../widgets/ra_seletor_widget.dart';
+import '../services/paradas_bacias_ras_service.dart';
 
 class ParadasBanco extends StatefulWidget {
   @override
@@ -22,12 +27,18 @@ class _ParadasBancoState extends State<ParadasBanco> {
   final _tileProvider = FMTCTileProvider(
     stores: const {'mapStore': BrowseStoreStrategy.readUpdateCreate},
   );
-
+  final MapController mapController = MapController();
+  List<Marker> markersFiltrados = [];
+  List<ParadaModel> paradasFiltradas = [];
   final String openStreetMapUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
   final String esriSatelliteUrl = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
 
   List<ParadaModel> pontosRemotos = [];
   final PopupController popupController = PopupController();
+  RaModel? raSelecionada;
+  List<Polygon> raPolygons = [];
+  BaciaModel? baciaSelecionada;
+  List<Polygon> baciaPolygons = [];
 
   @override
   void initState() {
@@ -61,6 +72,104 @@ class _ParadasBancoState extends State<ParadasBanco> {
     } catch (_) {}
   }
 
+  void _atualizarPoligonoDaRa(RaModel? ra) async {
+    if (ra == null) {
+      setState(() {
+        raPolygons = [];
+        markersFiltrados = [];
+      });
+      return;
+    }
+
+    final multiPolygon = ra.geoJson['coordinates'];
+    final List<Polygon> parsedPolygons = [];
+
+    for (var polygonGroup in multiPolygon) {
+      for (var polygon in polygonGroup) {
+        final List<LatLng> latLngs = polygon.map<LatLng>((coord) {
+          final double x = coord[0];
+          final double y = coord[1];
+          return ConverterLatLong.converterParaLatLng(x, y);
+        }).toList();
+
+        parsedPolygons.add(Polygon(
+          points: latLngs,
+          color: Colors.blue.withOpacity(0.3),
+          borderStrokeWidth: 2,
+          borderColor: Colors.blue,
+        ));
+      }
+    }
+
+    final paradas = await ParadasFiltradasService.buscarPorRa(ra.descNome);
+
+    setState(() {
+      raSelecionada = ra;
+      raPolygons = parsedPolygons;
+      markersFiltrados = paradas.map((ponto) {
+        return Marker(
+          point: LatLng(ponto.latitude, ponto.longitude),
+          width: 35,
+          height: 35,
+          child: const Icon(Icons.location_pin, color: Colors.red, size: 35),
+        );
+      }).toList();
+    });
+
+    if (parsedPolygons.isNotEmpty) {
+      final bounds = LatLngBounds.fromPoints(parsedPolygons.expand((p) => p.points).toList());
+      mapController.fitCamera(
+        CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(40)),
+      );
+    }
+  }
+
+  void _atualizarPoligonoDaBacia(BaciaModel? bacia) async {
+    if (bacia == null) {
+      setState(() {
+        baciaPolygons = [];
+        markersFiltrados = [];
+      });
+      return;
+    }
+
+    final coordinates = bacia.geoJson['coordinates'];
+    final List<LatLng> latLngs = coordinates[0].map<LatLng>((coord) {
+      final double x = coord[0];
+      final double y = coord[1];
+      return ConverterLatLong.converterParaLatLng(x, y);
+    }).toList();
+
+    final polygon = Polygon(
+      points: latLngs,
+      color: Colors.orange.withOpacity(0.3),
+      borderStrokeWidth: 2,
+      borderColor: Colors.orange,
+    );
+
+    final paradas = await ParadasFiltradasService.buscarPorBacia(bacia.descBacia);
+
+    setState(() {
+      baciaSelecionada = bacia;
+      baciaPolygons = [polygon];
+      markersFiltrados = paradas.map((ponto) {
+        return Marker(
+          point: LatLng(ponto.latitude, ponto.longitude),
+          width: 35,
+          height: 35,
+          child: const Icon(Icons.location_pin, color: Colors.red, size: 35),
+        );
+      }).toList();
+    });
+
+    if (latLngs.isNotEmpty) {
+      final bounds = LatLngBounds.fromPoints(latLngs);
+      mapController.fitCamera(
+        CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(40)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final pointProvider = Provider.of<PointProvider>(context);
@@ -83,6 +192,37 @@ class _ParadasBancoState extends State<ParadasBanco> {
     }).toList();
 
     return Scaffold(
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(110),
+          child: AppBar(
+            automaticallyImplyLeading: false,
+            backgroundColor: Colors.white,
+            flexibleSpace: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: RaSeletorWidget(
+                  onBaciaSelecionada: (bacia) {
+                    setState(() {
+                      raPolygons = [];
+                      markersFiltrados = [];
+                      paradasFiltradas = [];
+                    });
+                    _atualizarPoligonoDaBacia(bacia);
+                  },
+
+                  onRaSelecionada: (ra) {
+                    setState(() {
+                      baciaPolygons = [];
+                      markersFiltrados = [];
+                      paradasFiltradas = [];
+                    });
+                    _atualizarPoligonoDaRa(ra);
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
       // body: _isLoading
       //     ? const Center(child: CircularProgressIndicator())
       //     :
@@ -90,6 +230,8 @@ class _ParadasBancoState extends State<ParadasBanco> {
       Stack(
         children: [
           FlutterMap(
+            mapController: mapController,
+
             options: MapOptions(
               initialCenter: _userLocation ?? const LatLng(-15.7942, -47.8822),
               initialZoom: 17.0,
@@ -104,14 +246,18 @@ class _ParadasBancoState extends State<ParadasBanco> {
                 userAgentPackageName: 'com.ponto.parada.frontend',
                 tileProvider: _tileProvider,
               ),
-              if (showSatellite)
-                TileLayer(
-                  urlTemplate: esriSatelliteUrl,
-                  userAgentPackageName: 'com.ponto.parada.frontend',
+              if (raPolygons.isNotEmpty)
+                PolygonLayer(
+                  polygons: raPolygons,
+                ),
+
+              if (baciaPolygons.isNotEmpty)
+                PolygonLayer(
+                  polygons: baciaPolygons,
                 ),
               PopupMarkerLayer(
                 options: PopupMarkerLayerOptions(
-                  markers: [...markersRemotos, ...paradasTemporarias],
+                  markers: [...markersFiltrados],
                   popupController: popupController,
                   popupDisplayOptions: PopupDisplayOptions(
                     builder: (BuildContext context, Marker marker) {

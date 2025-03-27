@@ -22,7 +22,7 @@ class PontoParadaService {
     required void Function(double) onProgress,
   }) async {
     try {
-      final url = Uri.parse('http://dadoshlog.semob.gdfnet.df/pontos/criar');
+      final url = Uri.parse('${caminhoBackend.baseUrl}/pontos/criar');
 
       final List<Map<String, dynamic>> abrigosFormatados = abrigos.map((
           abrigo) {

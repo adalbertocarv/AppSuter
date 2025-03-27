@@ -11,6 +11,8 @@ class ParadaModel {
   final String abrigoImg;
   final double latitude;
   final double longitude;
+  final String dscNome; // Nome da RA
+  final String dscBacia;
   final bool linhaEscolar;
   final bool linhaStpc;
 
@@ -23,26 +25,29 @@ class ParadaModel {
     required this.abrigoImg,
     required this.latitude,
     required this.longitude,
+    required this.dscNome,
+    required this.dscBacia,
     required this.linhaEscolar,
     required this.linhaStpc,
   });
 
   factory ParadaModel.fromJson(Map<String, dynamic> json) {
     return ParadaModel(
-      criadoPor: json['criado_por'],
-      criadoEm: json['criado_em'],
-      visitadoEm: json['visitado_em'],
-      endereco: json['endereco'],
-      abrigoNome: json['abrigo_nome'],
-      abrigoImg: json['abrigo_img'],
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
-      linhaEscolar: json['linha_escolar'],
-      linhaStpc: json['linha_stpc'],
+      criadoPor: json['criado_por'] ?? '',
+      criadoEm: json['criado_em'] ?? '',
+      visitadoEm: json['visitado_em'] ?? '',
+      endereco: json['endereco'] ?? '',
+      abrigoNome: json['abrigo_nome'] ?? '',
+      abrigoImg: json['abrigo_img'] ?? '',
+      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
+      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      dscNome: json['dsc_nome'] ?? '',
+      dscBacia: json['dsc_bacia'] ?? '',
+      linhaEscolar: json['linha_escolar'] ?? false,
+      linhaStpc: json['linha_stpc'] ?? false,
     );
   }
 
-  // ✅ Adicione esse método:
   static ParadaModel empty() {
     return ParadaModel(
       criadoPor: '',
@@ -53,6 +58,8 @@ class ParadaModel {
       abrigoImg: '',
       latitude: 0.0,
       longitude: 0.0,
+      dscNome: '',
+      dscBacia: '',
       linhaEscolar: false,
       linhaStpc: false,
     );
@@ -122,6 +129,8 @@ class PopupMarker extends Marker {
       endereco: '',
       abrigoNome: '',
       abrigoImg: '',
+      dscNome: '',
+      dscBacia: '',
       latitude: 0.0,
       longitude: 0.0,
       linhaEscolar: false,
