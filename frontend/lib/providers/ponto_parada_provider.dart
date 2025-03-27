@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/gravar_paradas_service.dart';
 
 class PointProvider with ChangeNotifier {
   List<Map<String, dynamic>> _points = [];
@@ -131,6 +132,47 @@ class PointProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     prefs.remove('points');
   }
+
+  //---------------------------------------------------------------------------------------//
+  Future<void> enviarTodosOsPontosSeparadamente(void Function(double) onProgress) async {
+    final List<Map<String, dynamic>> pontosQueFalharam = [];
+    final total = _points.length;
+
+    for (int i = 0; i < total; i++) {
+      final ponto = _points[i];
+      final abrigos = List<Map<String, dynamic>>.from(ponto['abrigos'] ?? []);
+
+      final sucesso = await PontoParadaService.criarPonto(
+        idUsuario: ponto['idUsuario'],
+        endereco: ponto['endereco'],
+        latitude: ponto['latitude'],
+        longitude: ponto['longitude'],
+        linhaEscolares: ponto['LinhaEscolares'] ?? false,
+        linhaStpc: ponto['LinhaStpc'] ?? false,
+        latitudeInterpolado: ponto['latitudeInterpolado'] ?? ponto['latitude'],
+        longitudeInterpolado: ponto['longitudeInterpolado'] ?? ponto['longitude'],
+        dataVisita: ponto['DataVisita'] ?? DateTime.now().toIso8601String(),
+        pisoTatil: ponto['PisoTatil'] ?? false,
+        rampa: ponto['Rampa'] ?? false,
+        patologia: ponto['Patologia'] ?? false,
+        baia: ponto['Baia'] ?? false,
+        abrigos: abrigos,
+        onProgress: (progress) {
+          final globalProgress = (i + progress) / total;
+          onProgress(globalProgress);
+        },
+      );
+
+      if (!sucesso) {
+        pontosQueFalharam.add(ponto);
+      }
+    }
+
+    // Atualiza a lista com apenas os pontos que falharam
+    _points = pontosQueFalharam;
+    await _savePoints();
+    notifyListeners();
+  }
 }
 
 
@@ -156,3 +198,4 @@ class EnvioStatus with ChangeNotifier {
     notifyListeners();
   }
 }
+

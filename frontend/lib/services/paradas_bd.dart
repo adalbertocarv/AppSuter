@@ -1,10 +1,11 @@
 import 'dart:convert';
+import 'package:frontend/models/baseUrl_model.dart';
 import 'package:http/http.dart' as http;
 import '../models/paradas_novas.dart';
 
 class PontoParadaRemoteService {
   static Future<List<ParadaModel>> buscarPontos() async {
-    final url = Uri.parse('http://100.77.74.55:3003/pontos/novos/pontos');
+    final url = Uri.parse('${caminhoBackend.baseUrl}/pontos/novos/pontos');
 
     try {
       final response = await http.get(url);

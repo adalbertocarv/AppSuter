@@ -62,7 +62,7 @@ class PopupPontoParada extends StatelessWidget {
                     Image.network(
                       pontoParada.abrigoImg,
                       width: double.infinity,
-                      height: 100,
+                      height: 200,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return const Icon(Icons.image_not_supported, color: Colors.white);

@@ -80,44 +80,17 @@ class _RegistroTelaState extends State<RegistroTela> {
     envioStatus.iniciarEnvio();
 
     Future(() async {
-      int enviadosComSucesso = 0;
+      final antes = provider.points.length;
 
-      for (int i = 0; i < points.length; i++) {
-        final point = points[i];
-        final abrigos = List<Map<String, dynamic>>.from(point['abrigos'] ?? []);
-
-        final sucesso = await PontoParadaService.criarPonto(
-          idUsuario: point['idUsuario'],
-          endereco: point['endereco'],
-          latitude: point['latitude'],
-          longitude: point['longitude'],
-          linhaEscolares: point['LinhaEscolares'] ?? false,
-          linhaStpc: point['LinhaStpc'] ?? false,
-          latitudeInterpolado: point['latitudeInterpolado'] ?? point['latitude'],
-          longitudeInterpolado: point['longitudeInterpolado'] ?? point['longitude'],
-          dataVisita: point['DataVisita'] ?? DateTime.now().toIso8601String(),
-          pisoTatil: point['PisoTatil'] ?? false,
-          rampa: point['Rampa'] ?? false,
-          patologia: point['Patologia'] ?? false,
-          baia: point['Baia'] ?? false,
-          abrigos: abrigos,
-          onProgress: (progress) {
-            final globalProgress = (i + progress) / points.length;
-            envioStatus.atualizarProgresso(globalProgress);
-          },
-        );
-
-        if (sucesso) {
-          enviadosComSucesso++;
-        } else {
-          debugPrint('Erro ao enviar ponto ${i + 1}');
-        }
-      }
+      await provider.enviarTodosOsPontosSeparadamente((progress) {
+        envioStatus.atualizarProgresso(progress);
+      });
 
       envioStatus.finalizarEnvio();
 
-      if (enviadosComSucesso == points.length) {
-        await provider.limparPontos();
+      final depois = provider.points.length;
+
+      if (depois == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Todas as paradas foram enviadas com sucesso!'),
@@ -128,13 +101,14 @@ class _RegistroTelaState extends State<RegistroTela> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Erro ao enviar ${points.length - enviadosComSucesso} de ${points.length} paradas.'),
+                'Erro ao enviar ${depois} de ${antes} paradas. Apenas ${antes - depois} foram enviadas.'),
             backgroundColor: Colors.red,
           ),
         );
       }
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -144,12 +118,36 @@ class _RegistroTelaState extends State<RegistroTela> {
           if (envioStatus.emExecucao) {
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text('Enviando paradas...', style: TextStyle(fontSize: 16)),
+                const Text(
+                  'Enviando paradas...',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 20),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: LinearProgressIndicator(value: envioStatus.progresso),
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Barra de progresso
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: LinearProgressIndicator(
+                          value: envioStatus.progresso,
+                          minHeight: 18,
+                          backgroundColor: Colors.grey.shade300,
+                          color: Colors.blueAccent,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Texto de percentual
+                      Text(
+                        '${(envioStatus.progresso * 100).toStringAsFixed(1)}% concluído',
+                        style: const TextStyle(fontSize: 14, color: Colors.black54),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             );

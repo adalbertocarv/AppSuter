@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -12,6 +13,7 @@ import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import '../services/enderecoOSM_service.dart';
 import '../services/via_service.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
 class RegistrarParadaTela extends StatefulWidget {
   const RegistrarParadaTela({super.key});
@@ -20,7 +22,8 @@ class RegistrarParadaTela extends StatefulWidget {
   _RegistrarParadaTelaState createState() => _RegistrarParadaTelaState();
 }
 
-class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerProviderStateMixin {
+class _RegistrarParadaTelaState extends State<RegistrarParadaTela>
+    with TickerProviderStateMixin {
   LatLng? _pontoSelecionado; // Armazena o ponto selecionado
   LatLng? _pontoParadaConfirmado; // Armazena o ponto de parada confirmado
   LatLng? _pontoInterpolado; // Ponto interpolado confirmado
@@ -28,6 +31,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
   bool _isLoading = true; // Indica se a localização está sendo carregada
   bool _viaConfirmada = false; // Indica se a via foi confirmada
   bool showSatellite = false; // Estado para alternar sobreposição do satélite
+  bool _editandoLocalizacao = false; // editar localização do usuario
   Timer? _timer; //consultar polylines a cada 30s
   List<Marker> _markers = [];
   final ParadasService _paradasService =
@@ -37,9 +41,10 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
   EnderecoService(); // Serviço de busca de endereço
 
   // URLs dos tiles
-  final String openStreetMapUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-  final String esriSatelliteUrl = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
-
+  final String openStreetMapUrl =
+      'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  final String esriSatelliteUrl =
+      'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
 
   List<Polyline> _polylines = [];
   List<LatLng> _consolidatedPoints = [];
@@ -51,7 +56,6 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
   final _tileProvider = FMTCTileProvider(
     stores: const {'mapStore': BrowseStoreStrategy.readUpdateCreate},
   );
-
 
   @override
   void dispose() {
@@ -98,7 +102,8 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
       Position position = await Geolocator.getCurrentPosition();
       if (mounted) {
         setState(() {
-          _userLocation = LatLng(position.latitude, position.longitude);
+          _userLocation = LatLng(position.latitude, position.longitude); // traz o usuario no mapa
+          _mapController.move(LatLng(position.latitude, position.longitude), 17); // centraliza o mapa no usuario automaticamente
           _isLoading = false;
         });
       }
@@ -109,6 +114,18 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
         });
       }
     }
+  }
+
+  Widget _buildUserMarker() {
+    return Transform.translate(
+      offset: const Offset(0, -22),
+      child: Image.asset(
+        'assets/images/user_location.png',
+        width: 40,
+        height: 40,
+        fit: BoxFit.contain,
+      ),
+    );
   }
 
   Future<void> _carregarParadas() async {
@@ -140,7 +157,8 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
       Position posicaoAtual = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-      LatLng userLocation = LatLng(posicaoAtual.latitude, posicaoAtual.longitude);
+      LatLng userLocation =
+      LatLng(posicaoAtual.latitude, posicaoAtual.longitude);
       final vias = await _viaService.buscarViasProximas(userLocation);
       if (!mounted) return;
       setState(() {
@@ -153,6 +171,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
       }
     }
   }
+
 
   Future<void> _atualizarLocalizacaoEVias() async {
     try {
@@ -184,6 +203,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
       }
     }
   }
+
   bool _isAtualizando = false;
 
   void _atualizarLocalizacaoComAnimacao() async {
@@ -194,6 +214,20 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
     setState(() => _isAtualizando = false);
   }
 
+  Future<void> _carregarViasParaLocalizacaoEditada() async {
+    if (_userLocation == null) return;
+
+    try {
+      final vias = await _viaService.buscarViasProximas(_userLocation!);
+      if (!mounted) return;
+      setState(() {
+        _polylines = vias;
+        _consolidatedPoints = _consolidarPontos(vias);
+      });
+    } catch (e) {
+      print('Erro ao carregar vias da nova localização: $e');
+    }
+  }
 
   Future<void> _confirmarPonto() async {
     if (_pontoSelecionado == null) {
@@ -223,8 +257,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
 
       if (endereco.formattedAddress.isNotEmpty) {
         if (mounted) {
-          setState(() {
-          });
+          setState(() {});
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -339,6 +372,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
 
     return LatLng(projectedY, projectedX);
   }
+
 //---------FIM DA INTERPOLAÇÃO
   void _confirmarVia() {
     if (_pontoSelecionado != null) {
@@ -392,8 +426,10 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
         currentStep++;
 
         // Interpola latitude e longitude
-        double lat = lerpDouble(startPosition.latitude, targetPosition.latitude, currentStep / steps)!;
-        double lng = lerpDouble(startPosition.longitude, targetPosition.longitude, currentStep / steps)!;
+        double lat = lerpDouble(startPosition.latitude, targetPosition.latitude,
+            currentStep / steps)!;
+        double lng = lerpDouble(startPosition.longitude,
+            targetPosition.longitude, currentStep / steps)!;
 
         // Interpola o zoom
         double zoom = lerpDouble(startZoom, targetZoom, currentStep / steps)!;
@@ -426,144 +462,159 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
                 Icons.location_pin,
                 color: Colors.green,
                 size: 35,
-              ))
-      );
+              )));
     }).toList();
     return Scaffold(
       body: Stack(
         children: [
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator())
-          else
-            FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                  initialCenter:
-                  _userLocation ?? const LatLng(-15.7942, -47.8822),
-                  initialZoom: 17.0,
-                  interactionOptions: const InteractionOptions(
-                    flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                  ),
-                  onMapEvent: (event) {
-                    LatLng novoPonto = _mapController.camera.center;
-                    if (_pontoSelecionado == null ||
-                        _pontoSelecionado!.latitude != novoPonto.latitude ||
-                        _pontoSelecionado!.longitude != novoPonto.longitude) {
-                      setState(() {
-                        _pontoSelecionado = novoPonto;
-                      });
-                    }
-                  }
-              ),
-              children: [
-                // Camada Base: OpenStreetMap
-                TileLayer(
-                  urlTemplate: openStreetMapUrl,
-                  userAgentPackageName: 'com.ponto.parada.frontend',
-                  tileProvider: _tileProvider,
+          // if (_isLoading)
+          //   const Center(child: CircularProgressIndicator())
+          // else
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+                initialCenter:
+                _userLocation ?? const LatLng(-15.7942, -47.8822),
+                initialZoom: 17.0,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                 ),
-                // Camada de Satélite: GoogleMaps (Visibilidade controlada)
-                if (showSatellite)
-                  TileLayer(
-                    urlTemplate: esriSatelliteUrl,
-                    userAgentPackageName: 'com.ponto.parada.frontend',
-                  ),
-                // Clusterização apenas para _markers
-                if (_mostrarMarcadores && _markers.isNotEmpty)
-                  MarkerClusterLayerWidget(
-                    options: MarkerClusterLayerOptions(
-                      maxClusterRadius: 100,
-                      size: const Size(40, 40),
-                      padding: const EdgeInsets.all(50),
-                      markers: _markers,
-                      builder: (context, markers) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: Center(
-                            child: Text(
-                              markers.length.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+                onMapEvent: (event) {
+                  LatLng novoPonto = _mapController.camera.center;
+                  if (_pontoSelecionado == null ||
+                      _pontoSelecionado!.latitude != novoPonto.latitude ||
+                      _pontoSelecionado!.longitude != novoPonto.longitude) {
+                    setState(() {
+                      _pontoSelecionado = novoPonto;
+                    });
+                  }
+                }),
+            children: [
+              // Camada Base: OpenStreetMap
+              TileLayer(
+                urlTemplate: openStreetMapUrl,
+                userAgentPackageName: 'com.ponto.parada.frontend',
+                tileProvider: _tileProvider,
+              ),
+              // Camada de Satélite: GoogleMaps (Visibilidade controlada)
+              if (showSatellite)
+                TileLayer(
+                  urlTemplate: esriSatelliteUrl,
+                  userAgentPackageName: 'com.ponto.parada.frontend',
+                ),
+              // Clusterização apenas para _markers
+              if (_mostrarMarcadores && _markers.isNotEmpty)
+                MarkerClusterLayerWidget(
+                  options: MarkerClusterLayerOptions(
+                    maxClusterRadius: 100,
+                    size: const Size(40, 40),
+                    padding: const EdgeInsets.all(50),
+                    markers: _markers,
+                    builder: (context, markers) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: Center(
+                          child: Text(
+                            markers.length.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        );
-                      },
-                      showPolygon: true, // Exibe o polígono de agrupamento
-                      polygonOptions: PolygonOptions(
-                        borderColor: Colors.blue, // Cor da borda do polígono
-                        borderStrokeWidth: 3, // Largura da borda
-                        color: Colors.blue.withValues(alpha: 0.2), // Cor de preenchimento com opacidade
-                      ),
+                        ),
+                      );
+                    },
+                    showPolygon: true, // Exibe o polígono de agrupamento
+                    polygonOptions: PolygonOptions(
+                      borderColor: Colors.blue, // Cor da borda do polígono
+                      borderStrokeWidth: 3, // Largura da borda
+                      color: Colors.blue.withValues(
+                          alpha: 0.2), // Cor de preenchimento com opacidade
                     ),
                   ),
-                // Outros marcadores não clusterizados
-                if (_userLocation != null)
-                  MarkerLayer(
-                    markers: [
-                      if (_userLocation != null)
-                        Marker(
-                          point: _userLocation!,
-                          width: 50,
-                          height: 50,
-                          child: Transform.translate(
-                            offset: const Offset(0, -22),
-                            child: Image.asset(
-                              'assets/images/user_location.png',
-                              width: 40,
-                              height: 40,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                      ...paradasTemporarias, // Adiciona os markers do provider
-                    ],
-                  ),
-                PolylineLayer(polylines: _polylines),
-                if (_pontoParadaConfirmado != null)
-                  MarkerLayer(
-                    markers: [
+                ),
+              // Outros marcadores não clusterizados
+              PolylineLayer(polylines: _polylines),
+              if (_userLocation != null)
+                MarkerLayer(
+                  markers: [
+                    if (_userLocation != null)
                       Marker(
-                        point: _pontoParadaConfirmado!,
-                        width: 45.0,
-                        height: 45.0,
-                        child: Transform.translate(
-                          offset: const Offset(0, -22),
-                          child: const Icon(
-                            Icons.location_on,
-                            color: Colors.greenAccent,
-                            size: 45,
-                          ),
+                        point: _userLocation!,
+                        width: 50,
+                        height: 50,
+                        child: _editandoLocalizacao
+                            ? Draggable(
+                          feedback:
+                          _buildUserMarker(), // enquanto arrasta
+                          childWhenDragging: const SizedBox.shrink(),
+                          onDragEnd: (details) {
+                            final renderBox =
+                            context.findRenderObject() as RenderBox;
+                            final localOffset =
+                            renderBox.globalToLocal(details.offset);
+                            final point =
+                            Point(localOffset.dx, localOffset.dy);
+                            final latlng = _mapController.camera
+                                .pointToLatLng(point);
+
+                            if (latlng != null) {
+                              setState(() {
+                                _userLocation = latlng;
+                              });
+                            }
+                          },
+
+                          child: _buildUserMarker(),
+                        )
+                            : _buildUserMarker(),
+                      ),
+                    ...paradasTemporarias, // Adiciona os markers do provider
+                  ],
+                ),
+              if (_pontoParadaConfirmado != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _pontoParadaConfirmado!,
+                      width: 45.0,
+                      height: 45.0,
+                      child: Transform.translate(
+                        offset: const Offset(0, -22),
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.greenAccent,
+                          size: 45,
                         ),
                       ),
-                    ],
-                  ),
-                if (_pontoInterpolado != null)
-                //ponto interpolado
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: _pontoInterpolado!,
-                        width: 45.0,
-                        height: 45.0,
-                        child: Transform.translate(
-                          offset: const Offset(0, -20),
-                          child: const Icon(
-                            Icons.location_on,
-                            color: Colors.orange,
-                            size: 45,
-                          ),
+                    ),
+                  ],
+                ),
+              if (_pontoInterpolado != null)
+              //ponto interpolado
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _pontoInterpolado!,
+                      width: 45.0,
+                      height: 45.0,
+                      child: Transform.translate(
+                        offset: const Offset(0, -20),
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.orange,
+                          size: 45,
                         ),
                       ),
-                    ],
-                  ),
-              ],
-            ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
           if (!_isLoading)
             IgnorePointer(
               child: Center(
@@ -584,9 +635,12 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
             child: ElevatedButton(
               onPressed: _viaConfirmada
                   ? () {
-                if (_pontoParadaConfirmado == null || _pontoInterpolado == null) {
+                if (_pontoParadaConfirmado == null ||
+                    _pontoInterpolado == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Dados incompletos para cadastro.')),
+                    const SnackBar(
+                        content:
+                        Text('Dados incompletos para cadastro.')),
                   );
                   return;
                 }
@@ -595,10 +649,12 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
                   MaterialPageRoute(
                     builder: (context) => CarregamentoTela(
                       pontoParada: _pontoParadaConfirmado!,
-                      enderecoFuture: _enderecoService.buscarEndereco(
+                      enderecoFuture: _enderecoService
+                          .buscarEndereco(
                         _pontoParadaConfirmado!.latitude,
                         _pontoParadaConfirmado!.longitude,
-                      ).then((endereco) => endereco.formattedAddress),
+                      )
+                          .then((endereco) => endereco.formattedAddress),
                       pontoInterpolado: _pontoInterpolado!,
                     ),
                   ),
@@ -654,7 +710,8 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
                       const CircleAvatar(
                         radius: 12,
                         backgroundColor: Colors.white,
-                        child: Icon(Icons.arrow_forward, size: 16, color: Colors.green),
+                        child: Icon(Icons.arrow_forward,
+                            size: 16, color: Colors.green),
                       ),
                     ],
                   ),
@@ -697,7 +754,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
               _pontoInterpolado != null &&
               _viaConfirmada) // Exibe o botão somente se houver marcadores
             Positioned(
-              top: 16,
+              top: 80,
               left: 16,
               child: FloatingActionButton(
                 heroTag: null, // Desativa a animação Hero para evitar conflito
@@ -719,44 +776,26 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
               backgroundColor: Colors.blue[900],
             ),
           ),
-          Positioned(
-              top: 80,
-              right: 16,
-              child: FloatingActionButton(
-                onPressed: () {
-                  setState(() {
-                    _mostrarMarcadores =
-                    !_mostrarMarcadores; // Alterna entre true/false
-                  });
-                },
-                backgroundColor: _mostrarMarcadores ? Colors.blue[900] : Colors.grey,
-                child: Icon(_mostrarMarcadores
-                    ? Icons.location_pin
-                    : Icons.location_off_sharp),
-                tooltip: _mostrarMarcadores
-                    ? "Ocultar Paradas antigas"
-                    : "Mostrar Paradas antigas",
-              )),
-
           // Botão para ativar/desativar a sobreposição de satélite
           Positioned(
-            top: 140,
+            top: 80,
             right: 16,
             child: FloatingActionButton(
                 onPressed: () {
                   setState(() {
-                    showSatellite = !showSatellite; // Alterna exibição do satélite
+                    showSatellite =
+                    !showSatellite; // Alterna exibição do satélite
                   });
                 },
                 child: Icon(showSatellite ? Icons.map : Icons.satellite),
-                tooltip: 'Alternar entre camadas de mapa'
-            ),
+                tooltip: 'Alternar entre camadas de mapa'),
           ),
           Positioned(
-            top: 200,
+            top: 146,
             right: 16,
             child: FloatingActionButton(
-              onPressed: _isAtualizando ? null : _atualizarLocalizacaoComAnimacao,
+              onPressed:
+              _isAtualizando ? null : _atualizarLocalizacaoComAnimacao,
               backgroundColor: Colors.blue[900],
               tooltip: 'Atualizar localização e vias',
               child: _isAtualizando
@@ -771,7 +810,51 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
                   : const Icon(Icons.refresh),
             ),
           ),
-
+          Positioned(
+            top: 16,
+            left: 16,
+            child: SpeedDial(
+              icon: Icons.menu,
+              activeIcon: Icons.close,
+              backgroundColor: Colors.blue[900],
+              direction: SpeedDialDirection.down,
+              children: [
+                SpeedDialChild(
+                  child: Icon(
+                    _editandoLocalizacao ? Icons.edit_off : Icons.edit_location_alt,
+                    color: Colors.white,
+                  ),
+                  backgroundColor:
+                  _editandoLocalizacao ? Colors.orange : Colors.blue[900],
+                  label: 'Editar Localização',
+                  onTap: () {
+                    setState(() {
+                      _editandoLocalizacao = !_editandoLocalizacao;
+                    });
+                  },
+                ),
+                SpeedDialChild(
+                  child: const Icon(Icons.alt_route, color: Colors.white),
+                  backgroundColor: Colors.deepPurple,
+                  label: 'Carregar Vias',
+                  onTap: _carregarViasParaLocalizacaoEditada,
+                ),
+                SpeedDialChild(
+                  child: Icon(
+                    _mostrarMarcadores ? Icons.location_pin : Icons.location_off_sharp,
+                    color: Colors.white,
+                  ),
+                  backgroundColor: _mostrarMarcadores ? Colors.blue[900]! : Colors.grey,
+                  label: _mostrarMarcadores ? 'Ocultar Paradas Antigas' : 'Mostrar Paradas Antigas',
+                  onTap: () {
+                    setState(() {
+                      _mostrarMarcadores = !_mostrarMarcadores;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

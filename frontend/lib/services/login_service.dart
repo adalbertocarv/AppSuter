@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'package:frontend/models/baseUrl_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,7 +14,7 @@ class LoginResult {
 class LoginService {
   // Login do usuário
   static Future<LoginResult> login(String nome, String matricula) async {
-    final url = Uri.parse('http://100.77.74.55:3003/usuarios/verificar');
+    final url = Uri.parse('${caminhoBackend.baseUrl}/usuarios/verificar');
 
     try {
       final response = await http.post(

@@ -5,7 +5,7 @@ import '../models/paradas_model.dart';
 
 class ParadasService {
   Future<List<Paradas>> procurarParadas() async {
-    final url = Uri.parse("${caminhoBackend.baseUrl}/paradas/antigas");
+    final url = Uri.parse("${caminhoBackend.baseUrl}/parada");
 
     final response = await http.get(
       url,
