@@ -172,10 +172,10 @@ class _ParadasBancoState extends State<ParadasBanco> {
 
   @override
   Widget build(BuildContext context) {
-    final pointProvider = Provider.of<PointProvider>(context);
-    final paradasTemporarias = pointProvider.points.map((point) {
+    final pontoProvider = Provider.of<PontoProvider>(context);
+    final paradasTemporarias = pontoProvider.pontos.map((point) {
       return Marker(
-        point: LatLng(point['latitude'], point['longitude']),
+        point: LatLng(point.latitude, point.longitude),
         width: 35,
         height: 35,
         child: const Icon(Icons.location_pin, color: Colors.green, size: 35),

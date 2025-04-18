@@ -1,0 +1,38 @@
+{
+  "id_usuario": 1,
+  "latitude": -15.7941,
+  "longitude": -47.8825,
+  "latitudeInterpolado": -15.7941,
+  "longitudeInterpolado": -47.8825,
+  "endereco": "Rodoviária do Plano Piloto",
+  "dt_atualizacao": "2025-03-19T14:00:00Z",
+  "linha_escolar": true,
+  "linha_stpc": false,
+  "baia": true,
+  "rampa_acessivel": true,
+  "piso_tatil": false,
+  "abrigos": [
+    {
+      "id_tipo_abrigo": 1,
+      "imagens": [
+        { "abrigo_img": "iVBORw0KGgoAAAANSUhEUgAAA" }
+      ],
+      "patologias": [
+        {
+          "id_tipo_patologia": 5,
+          "patologia": true,
+          "imagens": [
+            { "patologias_img": "iVBORw0KGgoAAAANSUhEUgAAA"}
+          ]
+        }
+      ]
+    },
+    {
+      "id_tipo_abrigo": 3,
+      "imagens": [
+        { "abrigo_img": "iVBORw0KGgoAAAANSUhEUgAAA" }
+      ],
+      "patologias": []
+    }
+  ]
+}

@@ -1,25 +1,25 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../models/bacias_model.dart';
 import '../models/baseUrl_model.dart';
 
 class BaciaService {
-  List<dynamic> features = []; // Cache para features
+  static Future<BaciaModel?> buscarBaciaPorNome(String nomeBacia) async {
+    final url = Uri.parse('${caminhoBackend.baseUrl}/bacias/$nomeBacia');
 
-  Future<List<dynamic>> buscarBacias() async {
-    final response = await http.get(Uri.parse('${caminhoBackend.baseUrl}/bacias/'));
+    try {
+      final response = await http.get(url);
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-
-      // Access the "features" within "geojson"
-      if (data is List && data.isNotEmpty && data[0]['geojson'] != null) {
-        features = data[0]['geojson']['features']; // Cache the features
-        return features;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return BaciaModel.fromJson(data);
       } else {
-        throw Exception('Invalid JSON structure or "features" missing.');
+        print('Erro ${response.statusCode} ao buscar Bacia: $nomeBacia');
+        return null;
       }
-    } else {
-      throw Exception('Falha para buscar Bacias. Status Code: ${response.statusCode}');
+    } catch (e) {
+      print('Exceção ao buscar Bacia: $e');
+      return null;
     }
   }
 }

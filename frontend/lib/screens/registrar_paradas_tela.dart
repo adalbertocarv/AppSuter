@@ -73,7 +73,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela>
     _carregarViasComLocalizacaoAtual();
 
     // Escuta mudanças no PointProvider para limpar marcadores
-    Provider.of<PointProvider>(context, listen: false).addListener(() {
+    Provider.of<PontoProvider>(context, listen: false).addListener(() {
       setState(() {
         _pontoSelecionado = null;
         _pontoParadaConfirmado = null;
@@ -452,17 +452,19 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela>
 
   @override
   Widget build(BuildContext context) {
-    final pointProvider = Provider.of<PointProvider>(context);
-    final paradasTemporarias = pointProvider.points.map((point) {
+    final pontoProvider = Provider.of<PontoProvider>(context);
+    final paradasTemporarias = pontoProvider.pontos.map((point) {
       return Marker(
-          point: LatLng(point['latitude'], point['longitude']),
-          child: Transform.translate(
-              offset: const Offset(0, -20),
-              child: const Icon(
-                Icons.location_pin,
-                color: Colors.green,
-                size: 35,
-              )));
+        point: LatLng(point.latitude, point.longitude),
+        child: Transform.translate(
+          offset: const Offset(0, -20),
+          child: const Icon(
+            Icons.location_pin,
+            color: Colors.green,
+            size: 35,
+          ),
+        ),
+      );
     }).toList();
     return Scaffold(
       body: Stack(

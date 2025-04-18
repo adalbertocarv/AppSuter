@@ -1,0 +1,51 @@
+{
+    "id_usuario": 123,
+    "latitude": -15.7941,
+    "longitude": -47.8825,
+    "endereco": "Praça dos Três Poderes, Brasília - DF",
+    "dt_atualizacao": "2025-03-20T12:00:00Z",
+    "data_visita": "2025-03-21T10:00:00Z",
+    "linha_escolar": "Linha 101",
+    "linha_stpc": "Linha 202",
+    "baia": "A1",
+    "latitudeInterpolado": -15.7945,
+    "longitudeInterpolado": -47.8830,
+    "rampa_acessivel": true,
+    "piso_tatil": false,
+    "patologia": true,
+    "abrigos": [
+      {
+        "id_tipo_abrigo": 1,
+        "imagens": [
+          { "abrigo_img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA" },
+          { "abrigo_img": "data:image/jpeg;base64,/9j/4AAQSkZJRgABA" }
+        ],
+        "patologias": [
+          {
+            "id_tipo_patologia": 1,
+            "imagens": [
+              { "patologias_img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA" },
+              { "patologias_img": "data:image/jpeg;base64,/9j/4AAQSkZJRgABA" }
+            ]
+          }
+        ]
+      },
+      {
+        "id_tipo_abrigo": 2,
+        "imagens": [
+          { "abrigo_img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA" },
+          { "abrigo_img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA" },
+          { "abrigo_img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA" }
+        ],
+        "patologias": [
+          {
+            "id_tipo_patologia": 2,
+            "imagens": [
+              { "patologias_img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+  

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Ponto de Parada</title>
+</head>
+<body>
+    <h2>Cadastro de Ponto de Parada</h2>
+    <button onclick="carregarDados()">Carregar Dados</button>
+    <form id="pontoParadaForm">
+        <label>ID Usuário:</label>
+        <input type="number" id="id_usuario" required><br>
+        
+        <label>Latitude:</label>
+        <input type="text" id="latitude" required><br>
+        
+        <label>Longitude:</label>
+        <input type="text" id="longitude" required><br>
+        
+        <label>Endereço:</label>
+        <input type="text" id="endereco" required><br>
+        
+        <label>Data Atualização:</label>
+        <input type="datetime-local" id="dt_atualizacao" required><br>
+        
+        <label>Data Visita:</label>
+        <input type="datetime-local" id="data_visita" required><br>
+        
+        <label>Latitude Interpolada:</label>
+        <input type="text" id="latitudeInterpolado" required><br>
+        
+        <label>Longitude Interpolada:</label>
+        <input type="text" id="longitudeInterpolado" required><br>
+        
+        <label>Linha Escolar:</label>
+        <input type="checkbox" id="linha_escolar"><br>
+        
+        <label>Linha STPC:</label>
+        <input type="checkbox" id="linha_stpc"><br>
+        
+        <label>Baia:</label>
+        <input type="checkbox" id="baia"><br>
+        
+        <label>Rampa Acessível:</label>
+        <input type="checkbox" id="rampa_acessivel"><br>
+        
+        <label>Piso Tátil:</label>
+        <input type="checkbox" id="piso_tatil"><br>
+        
+        <h3>Abrigos</h3>
+        <div id="abrigosContainer"></div>
+        <button type="button" onclick="adicionarAbrigo()">Adicionar Abrigo</button><br>
+        <br>
+        <button type="button" onclick="enviarDados()">Enviar</button>
+    </form>
+
+    <script>
+        function adicionarAbrigo() {
+            const abrigosContainer = document.getElementById("abrigosContainer");
+            const abrigoDiv = document.createElement("div");
+            abrigoDiv.innerHTML = `
+                <label>ID Tipo Abrigo:</label>
+                <input type="number" class="id_tipo_abrigo"><br>
+                <label>Imagens do Abrigo:</label>
+                <input type="file" class="abrigo_imagem" multiple><br>
+                <h4>Patologias</h4>
+                <div class="patologiasContainer"></div>
+                <button type="button" onclick="adicionarPatologia(this)">Adicionar Patologia</button><br><br>
+            `;
+            abrigosContainer.appendChild(abrigoDiv);
+        }
+
+        function adicionarPatologia(button) {
+            const patologiasContainer = button.previousElementSibling;
+            const div = document.createElement("div");
+            div.innerHTML = `
+                <label>ID Tipo Patologia:</label>
+                <input type="number" class="id_tipo_patologia"><br>
+                <label>Imagens da Patologia:</label>
+                <input type="file" class="patologia_imagem" multiple><br>
+            `;
+            patologiasContainer.appendChild(div);
+        }
+
+        async function converterImagensParaBase64(files, tipo) {
+            const imagens = [];
+            for (let file of files) {
+                const base64 = await new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result.split(',')[1]);
+                });
+                imagens.push(tipo === 'patologia' ? { patologias_img: base64 } : { abrigo_img: base64 });
+            }
+            return imagens;
+        }
+
+        async function enviarDados() {
+            const abrigos = [];
+            const abrigoElements = document.querySelectorAll("#abrigosContainer > div");
+
+            for (let abrigo of abrigoElements) {
+                const id_tipo_abrigo = parseInt(abrigo.querySelector(".id_tipo_abrigo").value);
+                const imagens = await converterImagensParaBase64(abrigo.querySelector(".abrigo_imagem").files, 'abrigo');
+
+                const patologias = [];
+                const patologiaElements = abrigo.querySelectorAll(".patologiasContainer > div");
+
+                for (let pat of patologiaElements) {
+                    const id_tipo_patologia = parseInt(pat.querySelector(".id_tipo_patologia").value);
+                    const imagensPatologia = await converterImagensParaBase64(pat.querySelector(".patologia_imagem").files, 'patologia');
+                    patologias.push({ id_tipo_patologia, imagens: imagensPatologia });
+                }
+
+                abrigos.push({ id_tipo_abrigo, imagens, patologias });
+            }
+
+            const dados = {
+                id_usuario: parseInt(document.getElementById("id_usuario").value),
+                latitude: parseFloat(document.getElementById("latitude").value),
+                longitude: parseFloat(document.getElementById("longitude").value),
+                endereco: document.getElementById("endereco").value,
+                dt_atualizacao: new Date(document.getElementById("dt_atualizacao").value).toISOString(),
+                data_visita: new Date(document.getElementById("data_visita").value).toISOString(),
+                latitudeInterpolado: parseFloat(document.getElementById("latitudeInterpolado").value),
+                longitudeInterpolado: parseFloat(document.getElementById("longitudeInterpolado").value),
+                linha_escolar: document.getElementById("linha_escolar").checked,
+                linha_stpc: document.getElementById("linha_stpc").checked,
+                baia: document.getElementById("baia").checked,
+                rampa_acessivel: document.getElementById("rampa_acessivel").checked,
+                piso_tatil: document.getElementById("piso_tatil").checked,
+                patologia: true, // ou false, ou calcule dinamicamente se quiser
+                abrigos
+            };
+
+            fetch("http://10.233.144.111:3000/pontos/criar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(dados)
+            })
+            .then(res => res.json())
+            .then(res => alert("Cadastro realizado com sucesso!"))
+            .catch(err => alert("Erro ao enviar dados."));
+        }
+    </script>
+</body>
+</html>

@@ -40,14 +40,28 @@ class _HomeScreenState extends State<TelaInicio> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true, // Permite que o corpo do Scaffold se estenda atrás da Navigation Bar
+      // appBar: AppBar(
+      //   backgroundColor: Colors.blue[900],
+      //   centerTitle: true,
+      //   title: const Text('Paradas e Registros'),
+      //   titleTextStyle: const TextStyle(
+      //     color: Colors.white,
+      //     fontSize: 22,
+      //     fontWeight: FontWeight.bold
+      //   ),
+      //   iconTheme: const IconThemeData(color: Colors.white),
+      // ),
       appBar: AppBar(
         backgroundColor: Colors.blue[900],
-        centerTitle: true,
-        title: const Text('Paradas e Registros'),
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 22,
-          fontWeight: FontWeight.bold
+      title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/images/logo.png',
+              fit: BoxFit.contain,
+              height: 210,
+            )
+          ],
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),

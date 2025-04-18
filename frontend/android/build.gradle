@@ -1,3 +1,11 @@
+subprojects {
+    afterEvaluate { project ->
+        if (project.name == 'isar_flutter_libs') {
+            project.android.namespace = 'dev.isar.isar_flutter_libs'
+        }
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -9,6 +17,18 @@ rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            project.android {
+                if (!hasProperty("namespace") || namespace == null || namespace.isEmpty()) {
+                    namespace = "com.temp.fix.${project.name}"
+                }
+            }
+        }
+    }
+}
+
 subprojects {
     project.evaluationDependsOn(":app")
 }

@@ -43,7 +43,7 @@ dependencies:
   jwt_decoder: ^2.0.1
   geolocator: ^13.0.2
   flutter_map_tile_caching: ^10.0.0
-  path_provider: ^2.1.5
+  path_provider: ^2.0.11
   flutter_map_marker_cluster: ^1.4.0
   flutter_map_marker_popup: ^7.0.0
   proj4dart: ^2.1.0
@@ -51,11 +51,15 @@ dependencies:
   curved_navigation_bar: ^1.0.6
   mask_text_input_formatter: ^2.9.0
   flutter_speed_dial: ^7.0.0
-  
+  isar: ^3.1.0
+  isar_flutter_libs: ^3.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_launcher_icons: ^0.14.3
+  build_runner: ^2.3.3
+  isar_generator: ^3.1.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -109,6 +113,7 @@ flutter:
     - assets/images/abrigo_dnit.png
     - assets/images/ponto_sinalizacao.png
     - assets/images/ponto_habitual.jpg
+    - assets/images/logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

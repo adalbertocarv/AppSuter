@@ -5,6 +5,7 @@ import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import '../models/ponto_model.dart';
 import '../providers/ponto_parada_provider.dart';
 import '../services/login_service.dart';
 
@@ -141,14 +142,14 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
 
       // Criando cópias separadas para evitar referência compartilhada
       _abrigos = (widget.initialData?['abrigos'] as List?)?.map((abrigo) {
-            return {
-              "idTipoAbrigo": abrigo["idTipoAbrigo"],
-              "temPatologia": abrigo["temPatologia"] ?? false,
-              "imgBlobPaths": List<String>.from(abrigo["imgBlobPaths"] ?? []),
-              "imagensPatologiaPaths":
-                  List<String>.from(abrigo["imagensPatologiaPaths"] ?? []),
-            };
-          }).toList() ??
+        return {
+          "idTipoAbrigo": abrigo["idTipoAbrigo"],
+          "temPatologia": abrigo["temPatologia"] ?? false,
+          "imgBlobPaths": List<String>.from(abrigo["imgBlobPaths"] ?? []),
+          "imagensPatologiaPaths":
+          List<String>.from(abrigo["imagensPatologiaPaths"] ?? []),
+        };
+      }).toList() ??
           [];
 
       _temAbrigo = _abrigos.isNotEmpty; // Correção na lógica do haAbrigo
@@ -281,7 +282,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   void _removerImagem(int index, List<String> listaDestino, int abrigoIndex) {
     setState(() {
       _abrigos[abrigoIndex]["imagensPatologiaPaths"] =
-          List<String>.from(_abrigos[abrigoIndex]["imagensPatologiaPaths"]);
+      List<String>.from(_abrigos[abrigoIndex]["imagensPatologiaPaths"]);
       _abrigos[abrigoIndex]["imagensPatologiaPaths"].removeAt(index);
     });
   }
@@ -311,27 +312,24 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   }
 
   void _salvarParada(BuildContext context) {
-    if (!mounted) return; // Evita erro se o widget já foi desmontado
+    if (!mounted) return;
 
-    final pointProvider = Provider.of<PointProvider>(context, listen: false);
+    final pontoProvider = Provider.of<PontoProvider>(context, listen: false);
 
-    // Validação dos campos obrigatórios
     if (_addressController.text.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Endereço Vazio! Preencha com o endereço.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Endereço Vazio! Preencha com o endereço.'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
-    // Validação dos tipos de abrigo selecionados
     final abrigosInvalidos = _abrigos.where((abrigo) =>
     abrigo["idTipoAbrigo"] == null ||
         !_mapIdTipoAbrigo.containsKey(abrigo["idTipoAbrigo"]));
+
     if (abrigosInvalidos.isNotEmpty) {
       showDialog(
         context: context,
@@ -349,81 +347,45 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       return;
     }
 
-    // Construção do objeto parada
-    final parada = {
-      "idUsuario": _idUsuario!,
-      "endereco": _addressController.text,
-      "latitude": widget.latLng.latitude,
-      "longitude": widget.latLng.longitude,
-      "LinhaEscolares": _linhaEscolares,
-      "LinhaStpc": _linhaStpc,
-      "idTipoAbrigo": (_abrigos.isNotEmpty && _abrigos[0]["idTipoAbrigo"] is int)
-          ? _abrigos[0]["idTipoAbrigo"]
-          : 0, // exigir parada
-      "latitudeInterpolado": widget.latLongInterpolado.latitude,
-      "longitudeInterpolado": widget.latLongInterpolado.longitude,
-      "DataVisita": _dataVisita.toIso8601String(),
-      "Baia": _baia ?? false, // Garante que nunca será null
-      "PisoTatil": _pisoTatil,
-      "Rampa": _rampa,
-      "Patologia": _patologia,
-      "abrigos": _abrigos,
-    };
+    final ponto = PontoModel()
+      ..idUsuario = _idUsuario!
+      ..endereco = _addressController.text
+      ..latitude = widget.latLng.latitude
+      ..longitude = widget.latLng.longitude
+      ..linhaEscolares = _linhaEscolares
+      ..linhaStpc = _linhaStpc
+      ..latitudeInterpolado = widget.latLongInterpolado.latitude
+      ..longitudeInterpolado = widget.latLongInterpolado.longitude
+      ..dataVisita = _dataVisita.toIso8601String()
+      ..pisoTatil = _pisoTatil
+      ..rampa = _rampa
+      ..patologia = _patologia
+      ..baia = _baia
+      ..imgBlobPaths = [] // opcional se necessário fora de abrigo
+      ..imagensPatologiaPaths = []
+      ..abrigos = _abrigos.map((abrigo) {
+        return AbrigoModel()
+          ..idTipoAbrigo = abrigo["idTipoAbrigo"]
+          ..temPatologia = abrigo["temPatologia"]
+          ..imgBlobPaths = List<String>.from(abrigo["imgBlobPaths"] ?? [])
+          ..imagensPatologiaPaths = List<String>.from(abrigo["imagensPatologiaPaths"] ?? []);
+      }).toList();
 
-    // Atualiza ou adiciona a parada no provider
     if (widget.index != null) {
-      pointProvider.atualizarPontos(
-        widget.index!,
-        idUsuario: parada["idUsuario"],
-        endereco: parada["endereco"],
-        latitude: parada["latitude"],
-        longitude: parada["longitude"],
-        linhaEscolares: parada["LinhaEscolares"],
-        linhaStpc: parada["LinhaStpc"],
-        idTipoAbrigo: parada["idTipoAbrigo"],
-        latitudeInterpolado: parada["latitudeInterpolado"],
-        longitudeInterpolado: parada["longitudeInterpolado"],
-        dataVisita: parada["DataVisita"],
-        baia: parada["Baia"],
-        pisoTatil: parada["PisoTatil"],
-        rampa: parada["Rampa"],
-        patologia: parada["Patologia"],
-        abrigos: parada["abrigos"],
-      );
+      pontoProvider.atualizarPonto(widget.index!, ponto);
     } else {
-      pointProvider.adicionarPontos(
-        idUsuario: parada["idUsuario"],
-        endereco: parada["endereco"],
-        latitude: parada["latitude"],
-        longitude: parada["longitude"],
-        linhaEscolares: parada["LinhaEscolares"],
-        linhaStpc: parada["LinhaStpc"],
-        idTipoAbrigo: parada["idTipoAbrigo"],
-        latitudeInterpolado: parada["latitudeInterpolado"],
-        longitudeInterpolado: parada["longitudeInterpolado"],
-        dataVisita: parada["DataVisita"],
-        baia: parada["Baia"],
-        pisoTatil: parada["PisoTatil"],
-        rampa: parada["Rampa"],
-        patologia: parada["Patologia"],
-        abrigos: parada["abrigos"],
-      );
+      pontoProvider.adicionarPonto(ponto);
     }
 
-    // Exibe o `SnackBar` ANTES de fechar a tela
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Parada salva com sucesso!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Parada salva com sucesso!'),
+        backgroundColor: Colors.green,
+      ),
+    );
 
     Future.delayed(const Duration(milliseconds: 700), () {
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      if (mounted) Navigator.of(context).pop();
     });
   }
 
@@ -438,174 +400,175 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   Widget build(BuildContext context) {
     return Scaffold(
         body: Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade900, Colors.blue.shade400],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: SafeArea(
-        child: SizedBox(
           width: double.infinity,
-          height: double.infinity,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Título
-                Stack(
-                  alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue.shade900, Colors.blue.shade400],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: SafeArea(
+            child: SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        color: Colors.white,
-                        icon: const Icon(Icons.arrow_back_ios_new),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                    const Text(
-                      "Formulário da Parada",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                _buildTextField("Endereço", _addressController),
-
-
-                const SizedBox(height: 20),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12), // Borda arredondada de 12
-                  child: SizedBox(
-                    height: 300,
-                    width: 400,
-                    child: FlutterMap(
-                      options: MapOptions(
-                          initialCenter: widget.latLng,
-                          initialZoom: 16.0,
-                          interactionOptions: const InteractionOptions(
-                              flags: InteractiveFlag.all & ~InteractiveFlag.rotate
-                          )
-                      ),
+                    // Título
+                    Stack(
+                      alignment: Alignment.center,
                       children: [
-                        TileLayer(
-                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.ponto.parada.frontend',
-                          tileProvider: _tileProvider,
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: IconButton(
+                            color: Colors.white,
+                            icon: const Icon(Icons.arrow_back_ios_new),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
                         ),
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: widget.latLng,
-                              width: 45.0,
-                              height: 45.0,
-                              child: Transform.translate(
-                                offset: const Offset(0, -22),
-                                child: const Icon(
-                                  Icons.location_pin,
-                                  color: Colors.red,
-                                  size: 45,
-                                ),
-                              ),
-                            ),
-                            if (_pontoSelecionado != null)
-                              Marker(
-                                point: _pontoSelecionado!,
-                                width: 45.0,
-                                height: 45.0,
-                                child: Transform.translate(
-                                  offset: const Offset(0, -22),
-                                  child: const Icon(
-                                    Icons.location_on,
-                                    color: Colors.greenAccent,
-                                    size: 45,
-                                  ),
-                                ),
-                              ),
-                          ],
+                        const Text(
+                          "Formulário da Parada",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                _buildSwitch("Linhas Escolares", _linhaEscolares, (value) {
-                  setState(() => _linhaEscolares = value);
-                }),
-                _buildSwitch("Linhas STPC", _linhaStpc, (value) {
-                  setState(() => _linhaStpc = value);
-                }),
-                _buildSwitch("Baia", _baia, (value) {
-                  setState(() => _baia = value);
-                }),
+                    _buildTextField("Endereço", _addressController),
 
-                const SizedBox(height: 15),
-                const Text(
-                  "Acessibilidade",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 5),
 
-                _buildSwitch("Rampa", _rampa, (value) {
-                  setState(() => _rampa = value);
-                }),
-                _buildSwitch("Piso Tátil", _pisoTatil, (value) {
-                  setState(() => _pisoTatil = value);
-                }),
-
-                const SizedBox(height: 20),
-
-                _buildDateTile(context),
-
-                const SizedBox(height: 10),
-
-                // _buildSwitch("Possui Abrigo?", _temAbrigo, (value) {
-                //   setState(() => _temAbrigo = value);
-                // }),
-                //
-                // if (_temAbrigo) _buildAbrigos(),
-                _buildAbrigos(),
-
-                const SizedBox(height: 20),
-
-                Center(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 16, horizontal: 24),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                    const SizedBox(height: 20),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12), // Borda arredondada de 12
+                      child: SizedBox(
+                        height: 300,
+                        width: 400,
+                        child: FlutterMap(
+                          options: MapOptions(
+                              initialCenter: widget.latLng,
+                              initialZoom: 16.0,
+                              interactionOptions: const InteractionOptions(
+                                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate
+                              )
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.ponto.parada.frontend',
+                              tileProvider: _tileProvider,
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: widget.latLng,
+                                  width: 45.0,
+                                  height: 45.0,
+                                  child: Transform.translate(
+                                    offset: const Offset(0, -22),
+                                    child: const Icon(
+                                      Icons.location_pin,
+                                      color: Colors.red,
+                                      size: 45,
+                                    ),
+                                  ),
+                                ),
+                                if (_pontoSelecionado != null)
+                                  Marker(
+                                    point: _pontoSelecionado!,
+                                    width: 45.0,
+                                    height: 45.0,
+                                    child: Transform.translate(
+                                      offset: const Offset(0, -22),
+                                      child: const Icon(
+                                        Icons.location_on,
+                                        color: Colors.greenAccent,
+                                        size: 45,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    onPressed: () => _salvarParada(context),
-                    child: const Text(
-                      "Salvar Parada",
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    const SizedBox(height: 20),
+
+                    _buildSwitch("Linhas Escolares", _linhaEscolares, (value) {
+                      setState(() => _linhaEscolares = value);
+                    }),
+                    _buildSwitch("Linhas STPC", _linhaStpc, (value) {
+                      setState(() => _linhaStpc = value);
+                    }),
+                    _buildSwitch("Baia", _baia, (value) {
+                      setState(() => _baia = value);
+                    }),
+
+                    const SizedBox(height: 15),
+                    const Text(
+                      "Acessibilidade",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 5),
+
+                    _buildSwitch("Rampa", _rampa, (value) {
+                      setState(() => _rampa = value);
+                    }),
+                    _buildSwitch("Piso Tátil", _pisoTatil, (value) {
+                      setState(() => _pisoTatil = value);
+                    }),
+
+                    const SizedBox(height: 20),
+
+                    _buildDateTile(context),
+
+                    const SizedBox(height: 10),
+
+                    // _buildSwitch("Possui Abrigo?", _temAbrigo, (value) {
+                    //   setState(() => _temAbrigo = value);
+                    // }),
+                    //
+                    // if (_temAbrigo) _buildAbrigos(),
+                    _buildAbrigos(),
+
+                    const SizedBox(height: 20),
+
+                    Center(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 24),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () => _salvarParada(context),
+                        child: const Text(
+                          "Salvar Parada",
+                          style: TextStyle(fontSize: 18, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20)
+                  ],
                 ),
-                const SizedBox(height: 20)
-              ],
+              ),
             ),
           ),
-        ),
-      ),
-    )
+        )
     );
   }
 
@@ -645,7 +608,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
           borderSide: BorderSide.none,
         ),
         contentPadding:
-            const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
+        const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
       ),
     );
   }
@@ -661,7 +624,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       ),
       child: ListTile(
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         title: const Text(
           'Data e Hora da Visita',
           style: TextStyle(
@@ -672,10 +635,10 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
         ),
         subtitle: Text(
           '${_dataVisita.day.toString().padLeft(2, '0')}/'
-          '${_dataVisita.month.toString().padLeft(2, '0')}/'
-          '${_dataVisita.year} às '
-          '${_horaVisita.hour.toString().padLeft(2, '0')}:'
-          '${_horaVisita.minute.toString().padLeft(2, '0')}',
+              '${_dataVisita.month.toString().padLeft(2, '0')}/'
+              '${_dataVisita.year} às '
+              '${_horaVisita.hour.toString().padLeft(2, '0')}:'
+              '${_horaVisita.minute.toString().padLeft(2, '0')}',
           style: const TextStyle(
             fontSize: 14,
             color: Colors.white70,
@@ -795,8 +758,8 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                                   onPressed: () {
                                     setState(() {
                                       _abrigos[i]["imgBlobPaths"] =
-                                          List<String>.from(
-                                              _abrigos[i]["imgBlobPaths"]);
+                                      List<String>.from(
+                                          _abrigos[i]["imgBlobPaths"]);
                                       _abrigos[i]["imgBlobPaths"]
                                           .removeAt(index);
                                     });
@@ -844,7 +807,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                           onPressed: () => _tirarFotoComCamera(
                               _abrigos[i]["imagensPatologiaPaths"]),
                           icon:
-                              const Icon(Icons.camera_alt, color: Colors.white),
+                          const Icon(Icons.camera_alt, color: Colors.white),
                           label: const Text("Câmera",
                               style: TextStyle(color: Colors.white)),
                           style: ElevatedButton.styleFrom(
@@ -863,7 +826,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           itemCount:
-                              _abrigos[i]["imagensPatologiaPaths"].length,
+                          _abrigos[i]["imagensPatologiaPaths"].length,
                           itemBuilder: (context, index) {
                             return Stack(
                               children: [
@@ -871,7 +834,7 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
                                   padding: const EdgeInsets.all(4.0),
                                   child: Image.file(
                                     File(_abrigos[i]["imagensPatologiaPaths"]
-                                        [index]),
+                                    [index]),
                                     width: 100,
                                     height: 100,
                                     fit: BoxFit.cover,
