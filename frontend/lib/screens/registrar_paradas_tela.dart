@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import '../providers/ponto_parada_provider.dart';
+import '../models/ponto_model.dart';
 import '../services/paradas_service.dart';
 import 'carregamento_endereco_tela.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
@@ -69,7 +70,7 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
     _carregarViasComLocalizacaoAtual();
 
     // Escuta mudanças no PointProvider para limpar marcadores
-    Provider.of<PointProvider>(context, listen: false).addListener(() {
+    Provider.of<PontoProvider>(context, listen: false).addListener(() {
       setState(() {
         _pontoSelecionado = null;
         _pontoParadaConfirmado = null;
@@ -375,17 +376,18 @@ class _RegistrarParadaTelaState extends State<RegistrarParadaTela> with TickerPr
 
   @override
   Widget build(BuildContext context) {
-    final pointProvider = Provider.of<PointProvider>(context);
-    final paradasTemporarias = pointProvider.points.map((point) {
+    final pontoProvider = Provider.of<PontoProvider>(context);
+    final paradasTemporarias = pontoProvider.pontos.map((point) {
       return Marker(
-          point: LatLng(point['latitude'], point['longitude']),
-          child: Transform.translate(
-              offset: const Offset(0, -20),
-              child: const Icon(
-                Icons.location_pin,
-                color: Colors.green,
-                size: 35,
-              ))
+        point: LatLng(point.latitude, point.longitude),
+        child: Transform.translate(
+          offset: const Offset(0, -20),
+          child: const Icon(
+            Icons.location_pin,
+            color: Colors.green,
+            size: 35,
+          ),
+        ),
       );
     }).toList();
     return Scaffold(

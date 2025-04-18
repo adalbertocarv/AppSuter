@@ -5,6 +5,7 @@ import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import '../models/ponto_model.dart';
 import '../providers/ponto_parada_provider.dart';
 import '../services/login_service.dart';
 
@@ -311,27 +312,24 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
   }
 
   void _salvarParada(BuildContext context) {
-    if (!mounted) return; // Evita erro se o widget já foi desmontado
+    if (!mounted) return;
 
-    final pointProvider = Provider.of<PointProvider>(context, listen: false);
+    final pontoProvider = Provider.of<PontoProvider>(context, listen: false);
 
-    // Validação dos campos obrigatórios
     if (_addressController.text.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Endereço Vazio! Preencha com o endereço.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Endereço Vazio! Preencha com o endereço.'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
-    // Validação dos tipos de abrigo selecionados
     final abrigosInvalidos = _abrigos.where((abrigo) =>
     abrigo["idTipoAbrigo"] == null ||
         !_mapIdTipoAbrigo.containsKey(abrigo["idTipoAbrigo"]));
+
     if (abrigosInvalidos.isNotEmpty) {
       showDialog(
         context: context,
@@ -349,81 +347,45 @@ class _FormularioParadaTelaState extends State<FormularioParadaTela> {
       return;
     }
 
-    // Construção do objeto parada
-    final parada = {
-      "idUsuario": _idUsuario!,
-      "endereco": _addressController.text,
-      "latitude": widget.latLng.latitude,
-      "longitude": widget.latLng.longitude,
-      "LinhaEscolares": _linhaEscolares,
-      "LinhaStpc": _linhaStpc,
-      "idTipoAbrigo": (_abrigos.isNotEmpty && _abrigos[0]["idTipoAbrigo"] is int)
-          ? _abrigos[0]["idTipoAbrigo"]
-          : 0, // exigir parada
-      "latitudeInterpolado": widget.latLongInterpolado.latitude,
-      "longitudeInterpolado": widget.latLongInterpolado.longitude,
-      "DataVisita": _dataVisita.toIso8601String(),
-      "Baia": _baia ?? false, // Garante que nunca será null
-      "PisoTatil": _pisoTatil,
-      "Rampa": _rampa,
-      "Patologia": _patologia,
-      "abrigos": _abrigos,
-    };
+    final ponto = PontoModel()
+      ..idUsuario = _idUsuario!
+      ..endereco = _addressController.text
+      ..latitude = widget.latLng.latitude
+      ..longitude = widget.latLng.longitude
+      ..linhaEscolares = _linhaEscolares
+      ..linhaStpc = _linhaStpc
+      ..latitudeInterpolado = widget.latLongInterpolado.latitude
+      ..longitudeInterpolado = widget.latLongInterpolado.longitude
+      ..dataVisita = _dataVisita.toIso8601String()
+      ..pisoTatil = _pisoTatil
+      ..rampa = _rampa
+      ..patologia = _patologia
+      ..baia = _baia
+      ..imgBlobPaths = [] // opcional se necessário fora de abrigo
+      ..imagensPatologiaPaths = []
+      ..abrigos = _abrigos.map((abrigo) {
+        return AbrigoModel()
+          ..idTipoAbrigo = abrigo["idTipoAbrigo"]
+          ..temPatologia = abrigo["temPatologia"]
+          ..imgBlobPaths = List<String>.from(abrigo["imgBlobPaths"] ?? [])
+          ..imagensPatologiaPaths = List<String>.from(abrigo["imagensPatologiaPaths"] ?? []);
+      }).toList();
 
-    // Atualiza ou adiciona a parada no provider
     if (widget.index != null) {
-      pointProvider.atualizarPontos(
-        widget.index!,
-        idUsuario: parada["idUsuario"],
-        endereco: parada["endereco"],
-        latitude: parada["latitude"],
-        longitude: parada["longitude"],
-        linhaEscolares: parada["LinhaEscolares"],
-        linhaStpc: parada["LinhaStpc"],
-        idTipoAbrigo: parada["idTipoAbrigo"],
-        latitudeInterpolado: parada["latitudeInterpolado"],
-        longitudeInterpolado: parada["longitudeInterpolado"],
-        dataVisita: parada["DataVisita"],
-        baia: parada["Baia"],
-        pisoTatil: parada["PisoTatil"],
-        rampa: parada["Rampa"],
-        patologia: parada["Patologia"],
-        abrigos: parada["abrigos"],
-      );
+      pontoProvider.atualizarPonto(widget.index!, ponto);
     } else {
-      pointProvider.adicionarPontos(
-        idUsuario: parada["idUsuario"],
-        endereco: parada["endereco"],
-        latitude: parada["latitude"],
-        longitude: parada["longitude"],
-        linhaEscolares: parada["LinhaEscolares"],
-        linhaStpc: parada["LinhaStpc"],
-        idTipoAbrigo: parada["idTipoAbrigo"],
-        latitudeInterpolado: parada["latitudeInterpolado"],
-        longitudeInterpolado: parada["longitudeInterpolado"],
-        dataVisita: parada["DataVisita"],
-        baia: parada["Baia"],
-        pisoTatil: parada["PisoTatil"],
-        rampa: parada["Rampa"],
-        patologia: parada["Patologia"],
-        abrigos: parada["abrigos"],
-      );
+      pontoProvider.adicionarPonto(ponto);
     }
 
-    // Exibe o `SnackBar` ANTES de fechar a tela
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Parada salva com sucesso!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Parada salva com sucesso!'),
+        backgroundColor: Colors.green,
+      ),
+    );
 
     Future.delayed(const Duration(milliseconds: 700), () {
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      if (mounted) Navigator.of(context).pop();
     });
   }
 

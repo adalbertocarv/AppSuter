@@ -1,26 +1,25 @@
 import 'dart:convert';
+import 'package:frontend/models/baseUrl_model.dart';
 import 'package:http/http.dart' as http;
+import '../models/ras_model.dart';
 
-import '../models/baseUrl_model.dart';
+class RaService {
+  static Future<RaModel?> buscarRaPorNome(String nomeRa) async {
+    final url = Uri.parse('${caminhoBackend.baseUrl}/ras/$nomeRa');
 
-class RAService {
-  List<dynamic> features = []; // Cache for RA features
+    try {
+      final response = await http.get(url);
 
-  Future<List<dynamic>> buscarRA() async {
-    final response = await http.get(Uri.parse('${caminhoBackend.baseUrl}/ras/'));
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-
-      // Access the "features" within "geojson"
-      if (data is List && data.isNotEmpty && data[0]['geojson'] != null) {
-        features = data[0]['geojson']['features']; // Cache the features
-        return features;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return RaModel.fromJson(data);
       } else {
-        throw Exception('Estrutura de JSON invalida  ou "features" faltando.');
+        print('Erro ${response.statusCode} ao buscar RA: $nomeRa');
+        return null;
       }
-    } else {
-      throw Exception('Falha para buscar RAs. Status Code: ${response.statusCode}');
+    } catch (e) {
+      print('Exceção ao buscar RA: $e');
+      return null;
     }
   }
 }

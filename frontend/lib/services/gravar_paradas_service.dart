@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
+import '../models/baseUrl_model.dart';
+
 class PontoParadaService {
   static Future<bool> criarPonto({
     required int idUsuario,
@@ -21,7 +23,7 @@ class PontoParadaService {
     required void Function(double) onProgress,
   }) async {
     try {
-      final url = Uri.parse('http://100.77.74.55:3003/pontos/criar');
+      final url = Uri.parse('${caminhoBackend.baseUrl}/pontos/criar');
 
       final List<Map<String, dynamic>> abrigosFormatados = abrigos.map((
           abrigo) {

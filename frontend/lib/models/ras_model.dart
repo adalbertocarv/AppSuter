@@ -1,13 +1,22 @@
-class Ras {
-  final Map<String, dynamic> geometry; // Geometria do recurso
-  final Map<String, dynamic>? properties; // Propriedades opcionais
+class RaModel {
+  final int idBacia;
+  final String descNome;
+  final String descPrefixoRa;
+  final Map<String, dynamic> geoJson;
 
-  Ras({required this.geometry, this.properties});
+  RaModel({
+    required this.idBacia,
+    required this.descNome,
+    required this.descPrefixoRa,
+    required this.geoJson,
+  });
 
-  factory Ras.fromJson(Map<String, dynamic> json) {
-    return Ras(
-      geometry: json['geometry'], // Acessa a geometria diretamente
-      properties: json['properties'], // Acessa as propriedades (opcional)
+  factory RaModel.fromJson(Map<String, dynamic> json) {
+    return RaModel(
+      idBacia: json['idBacia'],
+      descNome: json['descNome'],
+      descPrefixoRa: json['descPrefixoRa'],
+      geoJson: json['geoRas'],
     );
   }
 }
